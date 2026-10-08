@@ -28,6 +28,7 @@ from __future__ import annotations
 import os
 import warnings
 import numpy as np
+import wdac_compat  # noqa: F401
 import pandas as pd
 from scipy.spatial import cKDTree
 from typing import Tuple

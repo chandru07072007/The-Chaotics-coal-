@@ -25,6 +25,7 @@ from __future__ import annotations
 import time
 import warnings
 import numpy as np
+import wdac_compat  # noqa: F401
 import pandas as pd
 from typing import Dict, List, Tuple, Any
 
