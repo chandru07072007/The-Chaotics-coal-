@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Tunnel Digital Twin</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="canvas-container"></div>
+      
+      <div id="header" class="overlay">
+        <h1>3D Tunnel + Geological Ground Digital Twin</h1>
+        <p>Tunnel Breakage / Failure Zone Estimation (PROTOTYPE)</p>
+      </div>
+
+      <div class="camera-controls overlay" id="camera-controls">
+        <button id="cam-iso">ISOMETRIC</button>
+        <button id="cam-top">TOP</button>
+        <button id="cam-front">PORTAL</button>
+        <button id="cam-side">SIDE</button>
+        <button id="cam-section">SECTION</button>
+        <button id="cam-inside">INSIDE</button>
+        <button id="cam-failure" style="color: var(--critical); border-color: var(--critical);">LOCATE FAILURE</button>
+      </div>
+
+      <!-- Right Sidebar -->
+      <div id="right-sidebar" class="overlay panel">
+        <h2>LIVE ANALYSIS</h2>
+        
+        <div class="stat-row">
+          <span class="stat-label">Tunnel Status:</span>
+          <span class="stat-value status-badge" id="val-status">SAFE</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Max Stress:</span>
+          <span class="stat-value" id="val-max-stress">0 kPa</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Max Deformation:</span>
+          <span class="stat-value" id="val-max-def">0 mm</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Max Water Pressure:</span>
+          <span class="stat-value" id="val-max-wp">0 kPa</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Min Safety Factor:</span>
+          <span class="stat-value" id="val-min-sf">0.00</span>
+        </div>
+        
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+        
+        <div class="stat-row">
+          <span class="stat-label">Highest Risk Segment:</span>
+          <span class="stat-value" id="val-risk-segment">-</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Risk Score:</span>
+          <span class="stat-value" id="val-risk-score">0%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Predicted Failure:</span>
+          <span class="stat-value" id="val-predicted-failure">X=0, Y=0, Z=0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Geological Layer:</span>
+          <span class="stat-value" id="val-geo-layer">-</span>
+        </div>
+        
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+        
+        <h2>SURFACE PROJECTION</h2>
+        <div class="stat-row">
+          <span class="stat-label">X Coordinate:</span>
+          <span class="stat-value" id="val-surf-x">0 m</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Y Coordinate:</span>
+          <span class="stat-value" id="val-surf-y">0 m</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Depth:</span>
+          <span class="stat-value" id="val-surf-z">0 m</span>
+        </div>
+
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+        
+        <div id="selected-segment-panel" style="display: none;">
+          <h2>SELECTED SEGMENT</h2>
+          <div class="stat-row">
+            <span class="stat-label">ID:</span>
+            <span class="stat-value" id="sel-id">-</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Stress:</span>
+            <span class="stat-value" id="sel-stress">-</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Deformation:</span>
+            <span class="stat-value" id="sel-def">-</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Water Press:</span>
+            <span class="stat-value" id="sel-wp">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Panel for Charts -->
+      <div id="bottom-panel" class="overlay">
+        <div class="chart-container">
+          <canvas id="chart-stress"></canvas>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-def"></canvas>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-risk"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
