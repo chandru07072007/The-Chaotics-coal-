@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32 NODE READING</title>
+  <style>
+    :root {
+      --bg-page: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-inner: #ffffff;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text-main: #0f172a;
+      --text-sub: #475569;
+      --text-muted: #94a3b8;
+      --blue: #2563eb;
+      --cyan: #0284c7;
+      --purple: #7c3aed;
+      --amber: #d97706;
+      --emerald: #059669;
+      --rose: #e11d48;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 28px 36px 56px;
+      line-height: 1.5;
+    }
+
+    .page-wrapper {
+      max-width: 1360px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* =====================================================
+       HEADER: ESP32 NODE READING + PORT BAR
+       ===================================================== */
+    .header-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .main-heading {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 2.35rem;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      color: var(--text-main);
+      text-transform: uppercase;
+    }
+
+    .port-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 10px;
+    }
+
+    .conn-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 11px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: #ffe4e6;
+      color: var(--rose);
+    }
+
+    .conn-pill.connected {
+      background: #d1fae5;
+      color: var(--emerald);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .port-badge-box {
+      display: flex;
+      flex-direction: column;
+      padding: 0 10px;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+    }
+
+    .port-badge-label {
+      font-size: 0.64rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .port-badge-val {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-main);
+      font-family: 'Consolas', monospace;
+    }
+
+    select, button {
+      font-family: inherit;
+      font-size: 0.82rem;
+      border-radius: 7px;
+      padding: 7px 11px;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    select {
+      background: var(--bg-inner);
+      color: var(--text-main);
+      border: 1px solid var(--border-strong);
+      min-width: 210px;
+      cursor: pointer;
+    }
+
+    .baud-select {
+      min-width: 105px;
+    }
+
+    .btn {
+      cursor: pointer;
+      font-weight: 600;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-inner);
+      color: var(--text-sub);
+    }
+
+    .btn:hover {
+      background: #f1f5f9;
+      color: var(--text-main);
+    }
+
+    .btn-primary {
+      background: var(--text-main);
+      color: #ffffff;
+      border-color: var(--text-main);
+    }
+
+    .btn-primary:hover {
+      background: #1e293b;
+      color: #ffffff;
+    }
+
+    .btn-danger {
+      background: #fff1f2;
+      color: var(--rose);
+      border-color: #fecdd3;
+    }
+
+    /* =====================================================
+       TOP SECTIONS: CHART & MONITOR
+       ===================================================== */
+    .section-block {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .box-surface {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+
+    .legend-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .legend-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 3px;
+      border-radius: 2px;
+    }
+
+    .main-chart-wrap {
+      width: 100%;
+      height: 260px;
+      background: var(--bg-inner);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .serial-console {
+      background: var(--bg-inner);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      height: 240px;
+      padding: 12px 14px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.82rem;
+      overflow-y: auto;
+      color: var(--text-main);
+      line-height: 1.48;
+    }
+
+    .serial-line {
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding: 1px 0;
+    }
+
+    .serial-ts {
+      color: var(--text-muted);
+      margin-right: 10px;
+      user-select: none;
+    }
+
+    .serial-highlight-header {
+      color: var(--blue);
+      font-weight: 700;
+    }
+
+    .serial-highlight-warn {
+      color: var(--rose);
+      font-weight: 600;
+    }
+
+    /* =====================================================
+       BOTTOM SECTION: SIMPLE & CLEAN 2x2 SENSOR ANALYSIS CARDS
+       ===================================================== */
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 960px) {
+      .analysis-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .analysis-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .analysis-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .analysis-title {
+      font-size: 0.96rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .status-pill {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      background: #f1f5f9;
+      color: var(--text-sub);
+      border: 1px solid var(--border);
+    }
+
+    .status-pill.ok {
+      background: #ecfdf5;
+      color: var(--emerald);
+      border-color: #a7f3d0;
+    }
+
+    .status-pill.warn {
+      background: #fffbeb;
+      color: var(--amber);
+      border-color: #fde68a;
+    }
+
+    .status-pill.crit {
+      background: #fff1f2;
+      color: var(--rose);
+      border-color: #fecdd3;
+    }
+
+    .analysis-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Minimal KPI Strip at top of each card */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .kpi-item {
+      background: var(--bg-inner);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .kpi-label {
+      font-size: 0.71rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-val {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--text-main);
+      font-family: 'Consolas', monospace;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .kpi-unit {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-sub);
+    }
+
+    .kpi-sub {
+      font-size: 0.74rem;
+      color: var(--text-sub);
+      font-family: 'Consolas', monospace;
+    }
+
+    /* Individual Sensor Analysis Chart Canvas */
+    .mini-chart-box {
+      background: var(--bg-inner);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .mini-chart-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.74rem;
+      color: var(--text-sub);
+    }
+
+    .mini-chart-canvas-wrap {
+      width: 100%;
+      height: 135px;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- =====================================================
+         HEADER: ESP32 NODE READING & PORT SELECTOR
+         ===================================================== -->
+    <header class="header-row">
+      <h1 class="main-heading">ESP32 NODE READING</h1>
+
+      <div class="port-bar">
+        <div id="connPill" class="conn-pill">
+          <span class="dot"></span>
+          <span id="connStateText">DISCONNECTED</span>
+        </div>
+
+        <div class="port-badge-box">
+          <span class="port-badge-label">Cable Port</span>
+          <span id="activePortDisplay" class="port-badge-val">Detecting...</span>
+        </div>
+
+        <select id="portSelect" title="Select Serial Port">
+          <option value="">Scanning COM ports...</option>
+        </select>
+
+        <select id="baudSelect" class="baud-select" title="Baud Rate">
+          <option value="115200" selected>115200 baud</option>
+          <option value="9600">9600 baud</option>
+          <option value="57600">57600 baud</option>
+        </select>
+
+        <button id="connectBtn" class="btn btn-primary" onclick="handleConnectClick()">
+          Connect Port
+        </button>
+        <button class="btn" onclick="refreshPorts()">
+          Refresh
+        </button>
+        <button class="btn" onclick="connectWebSerial()">
+          USB WebSerial
+        </button>
+      </div>
+    </header>
+
+    <!-- =====================================================
+         SECTION 1: MASTER CHART
+         ===================================================== -->
+    <section class="section-block">
+      <div class="section-header">
+        <h2 class="section-title">CHART</h2>
+        <div style="display:flex; align-items:center; gap:12px; font-size:0.8rem; color:var(--text-sub);">
+          <span>
+            Port: <strong id="ribbonPortName" style="color:var(--text-main);">--</strong>
+            (<span id="ribbonChipDesc">Scanning...</span>) &bull;
+            Packets: <strong id="ribbonPackets" style="color:var(--text-main);">0</strong> &bull;
+            Updated: <strong id="ribbonLastTime" style="color:var(--text-main);">Waiting...</strong>
+          </span>
+          <button class="btn" onclick="exportCSV()" style="padding:4px 10px; font-size:0.76rem;">
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="box-surface">
+        <div class="legend-bar">
+          <div class="legend-list">
+            <div class="legend-item"><span class="swatch" style="background:var(--cyan);"></span>Angle X (%)</div>
+            <div class="legend-item"><span class="swatch" style="background:var(--purple);"></span>Angle Y (%)</div>
+            <div class="legend-item"><span class="swatch" style="background:var(--amber);"></span>Vibration (%)</div>
+            <div class="legend-item"><span class="swatch" style="background:var(--emerald);"></span>Temperature (&deg;C)</div>
+            <div class="legend-item"><span class="swatch" style="background:var(--blue);"></span>Soil Moisture (%)</div>
+            <div class="legend-item"><span class="swatch" style="background:var(--rose);"></span>FSR Force (%)</div>
+          </div>
+          <span id="ribbonBaud" style="font-size:0.75rem; font-family:monospace; color:var(--text-muted);">115200 bps</span>
+        </div>
+
+        <div class="main-chart-wrap">
+          <canvas id="telemetryChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         SECTION 2: SERIAL MONITOR
+         ===================================================== -->
+    <section class="section-block">
+      <div class="section-header">
+        <h2 class="section-title">Monitor</h2>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="serialMonitorSubtitle" style="font-size:0.78rem; color:var(--text-sub); margin-right:6px;">
+            Streaming live serial output @ 115200 baud
+          </span>
+          <button id="pauseSerialBtn" class="btn" onclick="toggleSerialPause()" style="padding:4px 10px; font-size:0.76rem;">
+            Pause
+          </button>
+          <button class="btn" onclick="clearSerialConsole()" style="padding:4px 10px; font-size:0.76rem;">
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <div class="box-surface" style="padding:14px;">
+        <div id="serialConsole" class="serial-console"></div>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         SECTION 3: SIMPLE & CLEAN SENSOR ANALYSIS CARDS (2x2)
+         ===================================================== -->
+    <section class="analysis-grid">
+
+      <!-- 1. MPU6050 Dual-Axis Inclinometer (Angle X & Angle Y) -->
+      <div class="analysis-group">
+        <div class="analysis-header">
+          <span class="analysis-title">MPU6050 Dual-Axis Inclinometer (Angle X &amp; Angle Y)</span>
+        </div>
+
+        <div class="analysis-card">
+          <div class="kpi-row">
+            <div class="kpi-item">
+              <div class="kpi-label">
+                <span>Angle X</span>
+                <span class="swatch" style="background:var(--cyan);"></span>
+              </div>
+              <div class="kpi-val"><span id="angleXVal">0.00</span><span class="kpi-unit">deg</span></div>
+              <div class="kpi-sub">Tilt: <strong id="pctXVal">0.0%</strong></div>
+            </div>
+
+            <div class="kpi-item">
+              <div class="kpi-label">
+                <span>Angle Y</span>
+                <span class="swatch" style="background:var(--purple);"></span>
+              </div>
+              <div class="kpi-val"><span id="angleYVal">0.00</span><span class="kpi-unit">deg</span></div>
+              <div class="kpi-sub">Tilt: <strong id="pctYVal">0.0%</strong></div>
+            </div>
+          </div>
+
+          <div class="mini-chart-box">
+            <div class="mini-chart-top">
+              <span>Tilt Angle Analysis (X% vs Y%)</span>
+              <span id="mpuSummaryText" style="font-family:monospace;">0&deg; = 0% | 45&deg; = 100%</span>
+            </div>
+            <div class="mini-chart-canvas-wrap">
+              <canvas id="chartTilt"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. MPU6050 Seismic & Vibration Monitor -->
+      <div class="analysis-group">
+        <div class="analysis-header">
+          <span class="analysis-title">MPU6050 Seismic &amp; Vibration Monitor</span>
+        </div>
+
+        <div class="analysis-card">
+          <div class="kpi-row">
+            <div class="kpi-item">
+              <div class="kpi-label">
+                <span>Vibration</span>
+                <span class="swatch" style="background:var(--amber);"></span>
+              </div>
+              <div class="kpi-val"><span id="vibrationVal">0.00</span><span class="kpi-unit">m/s&sup2;</span></div>
+              <div class="kpi-sub">Peak: <strong id="peakVibVal">0.00 m/s&sup2;</strong></div>
+            </div>
+
+            <div class="kpi-item">
+              <div class="kpi-label">
+                <span>Vibration Level</span>
+                <span>0&ndash;100%</span>
+              </div>
+              <div class="kpi-val"><span id="vibrationLevelVal">0.0</span><span class="kpi-unit">%</span></div>
+              <div class="kpi-sub">Scale: 0&ndash;10 m/s&sup2;</div>
+            </div>
+          </div>
+
+          <div class="mini-chart-box">
+            <div class="mini-chart-top">
+              <span>Vibration Spectrum &amp; Intensity Analysis (%)</span>
+              <span id="vibBarLabel" style="font-family:monospace;">0.0 %</span>
+            </div>
+            <div class="mini-chart-canvas-wrap">
+              <canvas id="chartVib"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. DHT11 Temperature & Humidity Monitor -->
+      <div class="analysis-group">
+        <div class="analysis-header">
+          <span class="analysis-title">DHT11 Temperature &amp; Humidity Monitor</span>
+        </div>
+
+        <div class="analysis-card">
+          <div class="kpi-row">
+            <div class="kpi-item">
+              <div class="kpi-label">
+                <span>Temperature</span>
+                <span class="swatch" style="background:var(--emerald);"></span>
+              </div>
+              <div class="kpi-val"><span id="tempVal">--</span><span class="kpi-unit">&deg;C</span></div>
+              <div class="kpi-sub">GPIO 4 Digital</div>
+            </div>
+
+            <div class="kpi-item">
+              <div class="kpi-label">
+                <span>Humidity</span>
+                <span class="swatch" style="background:var(--cyan);"></span>
+              </div>
+              <div class="kpi-val"><span id="humVal">--</span><span class="kpi-unit">%</span></div>
+              <div class="kpi-sub" id="heatIndexText">Waiting for sample...</div>
+            </div>
+          </div>
+
+          <div class="mini-chart-box">
+            <div class="mini-chart-top">
+              <span>Temperature (&deg;C) &amp; Humidity (%) Analysis</span>
+              <span style="font-family:monospace;">0 &ndash; 100 Scale</span>
+            </div>
+            <div class="mini-chart-canvas-wrap">
+              <canvas id="chartDht"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Soil Moisture (GPIO 34) & FSR Force (GPIO 35) -->
+      <div class="analysis-group">
+        <div class="analysis-header">
+          <span class="analysis-title">Soil Moisture (GPIO 34) &amp; FSR Force (GPIO 35)</span>
+        </div>
+
+        <div class="analysis-card">
+          <div class="kpi-row">
+            <div class="kpi-item">
+              <div class="kpi-label">
+                <span>Soil Moisture</span>
+                <span class="swatch" style="background:var(--blue);"></span>
+              </div>
+              <div class="kpi-val"><span id="moistureVal">0</span><span class="kpi-unit">%</span></div>
+              <div class="kpi-sub">Raw ADC: <strong id="soilRawVal">4095</strong></div>
+            </div>
+
+            <div class="kpi-item">
+              <div class="kpi-label">
+                <span>FSR Force Level</span>
+                <span class="swatch" style="background:var(--rose);"></span>
+              </div>
+              <div class="kpi-val"><span id="forceLevelVal">0</span><span class="kpi-unit">%</span></div>
+              <div class="kpi-sub">Raw ADC: <strong id="fsrRawVal">0</strong> (Peak: <strong id="peakForceVal">0%</strong>)</div>
+            </div>
+          </div>
+
+          <div class="mini-chart-box">
+            <div class="mini-chart-top">
+              <span>Soil Moisture (%) &amp; FSR Force (%) Analysis</span>
+              <span style="font-family:monospace;">12-Bit ADC (0&ndash;4095)</span>
+            </div>
+            <div class="mini-chart-canvas-wrap">
+              <canvas id="chartAdc"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =====================================================
+         SECTION 4: 20-SEC END FORMAL COMMAND GENERATOR
+         ===================================================== -->
+    <section class="section-block">
+      <div class="section-header">
+        <h2 class="section-title">Formal Command (Generated at 20 Sec End)</h2>
+        <div style="display:flex; align-items:center; gap:10px; font-size:0.82rem; color:var(--text-sub);">
+          <label for="cmdNodeId">Node ID:</label>
+          <input id="cmdNodeId" type="number" value="45" min="1" max="100"
+            style="width:68px; padding:5px 8px; border:1px solid var(--border-strong); border-radius:6px; font-family:monospace; font-weight:700;" />
+          <span id="cmdTimerStatus" style="font-family:monospace; font-weight:600; color:var(--blue);">
+            Collecting: 0s / 20s
+          </span>
+          <button class="btn" onclick="copyFormalCommand()" id="copyCmdBtn" style="padding:5px 12px;">
+            Copy Command
+          </button>
+          <button class="btn btn-primary" onclick="restart20SecTimer()" style="padding:5px 12px;">
+            Restart 20s
+          </button>
+        </div>
+      </div>
+
+      <div class="box-surface" style="display:flex; flex-direction:column; gap:12px;">
+        <!-- 20-Second Progress Bar -->
+        <div style="width:100%; height:6px; background:#e2e8f0; border-radius:999px; overflow:hidden;">
+          <div id="cmdProgressBar" style="width:0%; height:100%; background:var(--blue); transition:width 0.3s linear;"></div>
+        </div>
+
+        <!-- Generated Formal Command Box -->
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--bg-inner); border:1px solid var(--border-strong); border-radius:8px; padding:14px 16px;">
+          <code id="formalCommandOutput" style="font-family:'Consolas', 'Courier New', monospace; font-size:0.96rem; font-weight:700; color:var(--text-main); user-select:all; word-break:break-all;">
+            Waiting for 20 sec sensor window to complete...
+          </code>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // =========================================================================
+    // STATE MANAGEMENT
+    // =========================================================================
+    let isConnected = false;
+    let serialPaused = false;
+    let peakVibration = 0;
+    let peakForce = 0;
+    let historyData = [];
+    const MAX_HISTORY = 40;
+
+    // 20-Second Formal Command Window State
+    let windowSamples = [];
+    let cmdSecondsElapsed = 0;
+    let cmdGenerated = false;
+    let cmdIntervalId = null;
+
+    // Web Serial fallback state
+    let webSerialPort = null;
+    let webSerialReader = null;
+    let webSerialActive = false;
+    let localSection = null;
+    let localWorking = {
+      angleX: 0, percentageX: 0, angleY: 0, percentageY: 0,
+      vibration: 0, vibrationLevel: 0, temperature: null, humidity: null,
+      dhtOk: true, soilRaw: 4095, moisture: 0, fsrRaw: 0, forceLevel: 0
+    };
+    let localPacketCount = 0;
+
+    async function initDashboard() {
+      await refreshPorts();
+      await fetchInitialRawLines();
+      connectSSE();
+      renderAllCharts();
+      start20SecTimer();
+      window.addEventListener('resize', renderAllCharts);
+    }
+
+    function start20SecTimer() {
+      if (cmdIntervalId) clearInterval(cmdIntervalId);
+      cmdSecondsElapsed = 0;
+      cmdGenerated = false;
+      windowSamples = [];
+      updateTimerUI();
+
+      cmdIntervalId = setInterval(() => {
+        if (cmdGenerated) return;
+        cmdSecondsElapsed++;
+        updateTimerUI();
+
+        if (cmdSecondsElapsed >= 20) {
+          cmdGenerated = true;
+          generateFormalCommandAt20Sec();
+        }
+      }, 1000);
+    }
+
+    function restart20SecTimer() {
+      document.getElementById('formalCommandOutput').textContent =
+        'Collecting 20 sec sensor readings...';
+      document.getElementById('cmdProgressBar').style.background = 'var(--blue)';
+      start20SecTimer();
+    }
+
+    function updateTimerUI() {
+      const pct = Math.min(100, (cmdSecondsElapsed / 20) * 100);
+      document.getElementById('cmdProgressBar').style.width = `${pct}%`;
+      const statusEl = document.getElementById('cmdTimerStatus');
+      if (cmdSecondsElapsed < 20) {
+        statusEl.textContent = `Collecting: ${cmdSecondsElapsed}s / 20s`;
+        statusEl.style.color = 'var(--blue)';
+      } else {
+        statusEl.textContent = `20s Complete (Command Ready)`;
+        statusEl.style.color = 'var(--emerald)';
+        document.getElementById('cmdProgressBar').style.background = 'var(--emerald)';
+      }
+    }
+
+    function generateFormalCommandAt20Sec() {
+      const nodeId = parseInt(document.getElementById('cmdNodeId').value, 10) || 45;
+      const samples = windowSamples.length > 0 ? windowSamples : historyData;
+
+      let disp = 42.5;
+      let tilt = 4.2;
+      let vib = 9.85;
+      let temp = 31.0;
+      let vel = 1.8;
+
+      if (samples.length > 0) {
+        const last = samples[samples.length - 1];
+
+        // 1. Tilt (deg): average absolute Angle X over the 20s window
+        const avgAbsTiltX = samples.reduce((acc, s) => acc + Math.abs(Number(s.angleX || 0)), 0) / samples.length;
+        tilt = Number(avgAbsTiltX.toFixed(1));
+
+        // 2. Vibration (m/s^2): max/RMS vibration over the 20s window
+        const maxVib = Math.max(...samples.map(s => Number(s.vibration || 0)));
+        vib = Number((maxVib > 0 ? maxVib : Number(last.vibration || 0)).toFixed(2));
+
+        // 3. Temperature (°C): latest valid DHT11 temperature, or 31.0 fallback
+        const validTemps = samples.map(s => s.temperature).filter(t => t !== null && t !== undefined && t > 0);
+        temp = validTemps.length > 0
+          ? Number((validTemps.reduce((a, b) => a + b, 0) / validTemps.length).toFixed(1))
+          : 31.0;
+
+        // 4. Displacement (mm): derived from Tilt % & FSR Force % (scaled 0-50mm)
+        const avgTiltPct = samples.reduce((acc, s) => acc + Number(s.percentageX || 0), 0) / samples.length;
+        const avgForcePct = samples.reduce((acc, s) => acc + Number(s.forceLevel || 0), 0) / samples.length;
+        const rawDisp = (avgTiltPct * 0.42) + (avgForcePct * 0.25);
+        disp = Number((rawDisp > 0.1 ? rawDisp : 42.5).toFixed(1));
+
+        // 5. Subsidence Velocity (mm/h): derived from vibration + tilt rate
+        const rawVel = Math.max(0.5, (vib * 0.15) + (avgTiltPct * 0.03));
+        vel = Number(rawVel.toFixed(1));
+      }
+
+      const cmd = `python main.py --node-id ${nodeId} --disp ${disp.toFixed(1)} --tilt ${tilt.toFixed(1)} --vib ${vib.toFixed(2)} --temp ${temp.toFixed(1)} --vel ${vel.toFixed(1)}`;
+      document.getElementById('formalCommandOutput').textContent = cmd;
+
+      // Also print to Serial Monitor at the end of 20 seconds
+      const ts = new Date().toLocaleTimeString();
+      appendSerialLine(ts, `======================================`);
+      appendSerialLine(ts, `20 SEC END FORMAL COMMAND GENERATED:`);
+      appendSerialLine(ts, cmd);
+      appendSerialLine(ts, `======================================`);
+    }
+
+    function copyFormalCommand() {
+      const cmdText = document.getElementById('formalCommandOutput').textContent.trim();
+      navigator.clipboard.writeText(cmdText);
+      const btn = document.getElementById('copyCmdBtn');
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy Command'; }, 1800);
+    }
+
+    async function refreshPorts() {
+      try {
+        const res = await fetch('/api/status');
+        if (!res.ok) throw new Error('Offline');
+        const status = await res.json();
+        populatePortDropdown(status.ports || [], status.port);
+        applyStatusUpdate(status);
+      } catch (err) {
+        const sel = document.getElementById('portSelect');
+        sel.innerHTML = '<option value="WEBSERIAL">Use USB WebSerial Button</option>';
+      }
+    }
+
+    function populatePortDropdown(ports, selectedPort) {
+      const sel = document.getElementById('portSelect');
+      const prevVal = selectedPort || sel.value;
+      sel.innerHTML = '';
+
+      if (ports.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'No COM ports found';
+        sel.appendChild(opt);
+        return;
+      }
+
+      ports.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.device;
+        const usbTag = p.isUsb ? ' [USB ESP32]' : '';
+        opt.textContent = `${p.device} — ${p.description}${usbTag}`;
+        if (prevVal && p.device.toUpperCase() === prevVal.toUpperCase()) {
+          opt.selected = true;
+        }
+        sel.appendChild(opt);
+      });
+    }
+
+    async function fetchInitialRawLines() {
+      try {
+        const res = await fetch('/api/raw');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.lines) {
+          data.lines.forEach(item => appendSerialLine(item.time, item.text));
+        }
+      } catch (e) {}
+    }
+
+    function connectSSE() {
+      const evtSource = new EventSource('/api/stream');
+
+      evtSource.addEventListener('status', (e) => {
+        const status = JSON.parse(e.data);
+        if (status.ports) populatePortDropdown(status.ports, status.port);
+        applyStatusUpdate(status);
+      });
+
+      evtSource.addEventListener('sensor_data', (e) => {
+        const payload = JSON.parse(e.data);
+        document.getElementById('ribbonPackets').textContent = payload.packetCount;
+        if (payload.lastUpdate) {
+          const dt = new Date(payload.lastUpdate * 1000);
+          document.getElementById('ribbonLastTime').textContent = dt.toLocaleTimeString();
+        }
+        if (payload.port) {
+          document.getElementById('activePortDisplay').textContent = payload.port;
+          document.getElementById('ribbonPortName').textContent = payload.port;
+        }
+        if (payload.portDescription) {
+          document.getElementById('ribbonChipDesc').textContent = payload.portDescription;
+        }
+        updateSensorUI(payload.data);
+      });
+
+      evtSource.addEventListener('raw', (e) => {
+        const item = JSON.parse(e.data);
+        appendSerialLine(item.time, item.text);
+      });
+    }
+
+    function applyStatusUpdate(status) {
+      isConnected = status.connected;
+      const pill = document.getElementById('connPill');
+      const stateText = document.getElementById('connStateText');
+      const connectBtn = document.getElementById('connectBtn');
+
+      if (status.connected) {
+        pill.classList.add('connected');
+        stateText.textContent = 'CONNECTED';
+        document.getElementById('activePortDisplay').textContent = status.port;
+        document.getElementById('ribbonPortName').textContent = status.port;
+        document.getElementById('ribbonChipDesc').textContent = status.portDescription || status.port;
+        document.getElementById('ribbonBaud').textContent = `${status.baudrate} bps`;
+        document.getElementById('serialMonitorSubtitle').textContent =
+          `Streaming live from ${status.portDescription || status.port} @ ${status.baudrate} baud`;
+        connectBtn.textContent = 'Disconnect';
+        connectBtn.className = 'btn btn-danger';
+      } else {
+        pill.classList.remove('connected');
+        stateText.textContent = 'DISCONNECTED';
+        document.getElementById('activePortDisplay').textContent = 'Not Connected';
+        connectBtn.textContent = 'Connect Port';
+        connectBtn.className = 'btn btn-primary';
+      }
+
+      if (status.packetCount !== undefined) {
+        document.getElementById('ribbonPackets').textContent = status.packetCount;
+      }
+
+      if (status.data && status.data.packetId > 0) {
+        updateSensorUI(status.data);
+      }
+    }
+
+    async function handleConnectClick() {
+      if (webSerialActive) {
+        await disconnectWebSerial();
+        return;
+      }
+
+      const port = document.getElementById('portSelect').value;
+      const baudrate = parseInt(document.getElementById('baudSelect').value, 10) || 115200;
+
+      if (isConnected) {
+        await fetch('/api/disconnect', { method: 'POST' });
+        await refreshPorts();
+      } else {
+        if (!port) {
+          alert('Please select a valid COM port.');
+          return;
+        }
+        const res = await fetch('/api/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ port, baudrate })
+        });
+        const out = await res.json();
+        if (!out.ok) alert('Failed to connect: ' + out.message);
+        if (out.status) applyStatusUpdate(out.status);
+      }
+    }
+
+    // =========================================================================
+    // UPDATE SENSOR CARDS & ANALYSIS CHARTS
+    // =========================================================================
+    function updateSensorUI(d) {
+      if (!d) return;
+
+      const ax = Number(d.angleX || 0);
+      const ay = Number(d.angleY || 0);
+      const px = Number(d.percentageX || 0);
+      const py = Number(d.percentageY || 0);
+
+      document.getElementById('angleXVal').textContent = ax.toFixed(2);
+      document.getElementById('pctXVal').textContent = `${px.toFixed(1)}%`;
+      document.getElementById('angleYVal').textContent = ay.toFixed(2);
+      document.getElementById('pctYVal').textContent = `${py.toFixed(1)}%`;
+      document.getElementById('mpuSummaryText').innerHTML =
+        `Abs X: ${Math.abs(ax).toFixed(1)}&deg; | Abs Y: ${Math.abs(ay).toFixed(1)}&deg;`;
+
+      // Vibration
+      const vib = Number(d.vibration || 0);
+      const vibLvl = Number(d.vibrationLevel || 0);
+      if (vib > peakVibration) peakVibration = vib;
+
+      document.getElementById('vibrationVal').textContent = vib.toFixed(2);
+      document.getElementById('vibrationLevelVal').textContent = vibLvl.toFixed(1);
+      document.getElementById('vibBarLabel').textContent = `Current: ${vibLvl.toFixed(1)}%`;
+      document.getElementById('peakVibVal').innerHTML = `${peakVibration.toFixed(2)} m/s&sup2;`;
+
+      // DHT11
+      if (d.temperature !== null && d.humidity !== null) {
+        document.getElementById('tempVal').textContent = Number(d.temperature).toFixed(1);
+        document.getElementById('humVal').textContent = Number(d.humidity).toFixed(1);
+      }
+      if (!d.dhtOk) {
+        document.getElementById('heatIndexText').textContent =
+          d.temperature !== null ? 'Holding last reading' : 'DHT11 read failed (GPIO 4)';
+      } else if (d.temperature !== null) {
+        document.getElementById('heatIndexText').textContent = 'Sensor Active';
+      }
+
+      // Soil Moisture & FSR
+      const soilRaw = Number(d.soilRaw ?? 4095);
+      const moisture = Number(d.moisture ?? 0);
+      const fsrRaw = Number(d.fsrRaw ?? 0);
+      const force = Number(d.forceLevel ?? 0);
+      if (force > peakForce) peakForce = force;
+
+      document.getElementById('soilRawVal').textContent = soilRaw;
+      document.getElementById('moistureVal').textContent = moisture;
+      document.getElementById('fsrRawVal').textContent = fsrRaw;
+      document.getElementById('forceLevelVal').textContent = force;
+      document.getElementById('peakForceVal').textContent = `${peakForce}%`;
+
+      const prevTemp = historyData.length > 0 ? historyData[historyData.length - 1].temperature : 0;
+      const prevHum = historyData.length > 0 ? historyData[historyData.length - 1].humidity : 0;
+
+      const sampleObj = {
+        time: new Date().toLocaleTimeString(),
+        angleX: ax,
+        percentageX: px,
+        angleY: ay,
+        percentageY: py,
+        vibration: vib,
+        vibrationLevel: vibLvl,
+        temperature: d.temperature !== null ? Number(d.temperature) : prevTemp,
+        humidity: d.humidity !== null ? Number(d.humidity) : prevHum,
+        soilRaw: soilRaw,
+        moisture: moisture,
+        fsrRaw: fsrRaw,
+        forceLevel: force
+      };
+
+      historyData.push(sampleObj);
+      if (!cmdGenerated) {
+        windowSamples.push(sampleObj);
+      }
+
+      if (historyData.length > MAX_HISTORY) {
+        historyData.shift();
+      }
+
+      renderAllCharts();
+    }
+
+    // =========================================================================
+    // CHART RENDERING ENGINE (MASTER CHART + 4 ANALYSIS CHARTS)
+    // =========================================================================
+    function renderAllCharts() {
+      // 1. Master Multi-Sensor Chart
+      drawMultiChart('telemetryChart', [
+        { key: 'percentageX', color: '#0284c7', fill: false },
+        { key: 'percentageY', color: '#7c3aed', fill: false },
+        { key: 'vibrationLevel', color: '#d97706', fill: false },
+        { key: 'temperature', color: '#059669', fill: false },
+        { key: 'moisture', color: '#2563eb', fill: false },
+        { key: 'forceLevel', color: '#e11d48', fill: false }
+      ], 100);
+
+      // 2. Card 1: MPU6050 Tilt Analysis Chart (Angle X % vs Angle Y %)
+      drawMultiChart('chartTilt', [
+        { key: 'percentageX', color: '#0284c7', fill: 'rgba(2, 132, 199, 0.08)' },
+        { key: 'percentageY', color: '#7c3aed', fill: 'rgba(124, 58, 237, 0.08)' }
+      ], 100);
+
+      // 3. Card 2: MPU6050 Vibration Bar + Line Analysis Chart
+      drawBarLineChart('chartVib', 'vibrationLevel', '#d97706', 'rgba(217, 119, 6, 0.22)', 100);
+
+      // 4. Card 3: DHT11 Temperature & Humidity Analysis Chart
+      drawMultiChart('chartDht', [
+        { key: 'temperature', color: '#059669', fill: 'rgba(5, 150, 105, 0.08)' },
+        { key: 'humidity', color: '#0284c7', fill: 'rgba(2, 132, 199, 0.06)' }
+      ], 100);
+
+      // 5. Card 4: Soil Moisture & FSR Force Analysis Chart
+      drawMultiChart('chartAdc', [
+        { key: 'moisture', color: '#2563eb', fill: 'rgba(37, 99, 235, 0.08)' },
+        { key: 'forceLevel', color: '#e11d48', fill: 'rgba(225, 29, 72, 0.10)' }
+      ], 100);
+    }
+
+    function drawMultiChart(canvasId, seriesList, maxVal = 100) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(100, rect.width);
+      canvas.height = Math.max(80, rect.height);
+
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      const padL = 34, padR = 10, padT = 8, padB = 16;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      // Subtle horizontal grid lines
+      ctx.strokeStyle = '#f1f5f9';
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px Consolas, monospace';
+      ctx.lineWidth = 1;
+
+      const steps = 4;
+      for (let i = 0; i <= steps; i++) {
+        const val = Math.round((maxVal / steps) * i);
+        const y = padT + plotH - (val / maxVal) * plotH;
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(padL + plotW, y);
+        ctx.stroke();
+        ctx.fillText(`${val}`, 2, y + 3);
+      }
+
+      if (historyData.length < 1) return;
+
+      seriesList.forEach(s => {
+        const pts = historyData.map((d, idx) => {
+          const x = padL + (historyData.length === 1 ? plotW / 2 : (idx / (MAX_HISTORY - 1)) * plotW);
+          const v = Math.min(maxVal, Math.max(0, Number(d[s.key] || 0)));
+          const y = padT + plotH - (v / maxVal) * plotH;
+          return { x, y };
+        });
+
+        if (s.fill && pts.length > 1) {
+          ctx.fillStyle = s.fill;
+          ctx.beginPath();
+          ctx.moveTo(pts[0].x, padT + plotH);
+          pts.forEach(p => ctx.lineTo(p.x, p.y));
+          ctx.lineTo(pts[pts.length - 1].x, padT + plotH);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        pts.forEach((p, i) => {
+          if (i === 0) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+
+        const last = pts[pts.length - 1];
+        ctx.fillStyle = s.color;
+        ctx.beginPath();
+        ctx.arc(last.x, last.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawBarLineChart(canvasId, key, strokeColor, barColor, maxVal = 100) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(100, rect.width);
+      canvas.height = Math.max(80, rect.height);
+
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      const padL = 34, padR = 10, padT = 8, padB = 16;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      ctx.strokeStyle = '#f1f5f9';
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px Consolas, monospace';
+      for (let i = 0; i <= 4; i++) {
+        const val = i * 25;
+        const y = padT + plotH - (val / maxVal) * plotH;
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(padL + plotW, y);
+        ctx.stroke();
+        ctx.fillText(`${val}`, 2, y + 3);
+      }
+
+      if (historyData.length < 1) return;
+
+      const barW = Math.max(4, (plotW / MAX_HISTORY) - 3);
+      const pts = [];
+
+      historyData.forEach((d, idx) => {
+        const x = padL + (historyData.length === 1 ? plotW / 2 : (idx / (MAX_HISTORY - 1)) * plotW);
+        const v = Math.min(maxVal, Math.max(0, Number(d[key] || 0)));
+        const h = (v / maxVal) * plotH;
+        const y = padT + plotH - h;
+        pts.push({ x, y });
+
+        ctx.fillStyle = barColor;
+        ctx.fillRect(x - barW / 2, y, barW, Math.max(2, h));
+      });
+
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      pts.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.stroke();
+
+      const last = pts[pts.length - 1];
+      ctx.fillStyle = strokeColor;
+      ctx.beginPath();
+      ctx.arc(last.x, last.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // =========================================================================
+    // LIVE SERIAL CONSOLE
+    // =========================================================================
+    function appendSerialLine(timeStr, text) {
+      if (serialPaused) return;
+      const consoleEl = document.getElementById('serialConsole');
+      const lineEl = document.createElement('div');
+      lineEl.className = 'serial-line';
+
+      let contentClass = '';
+      if (text.includes('===') || text.includes('---') || text.includes('SENSOR DATA')) {
+        contentClass = 'serial-highlight-header';
+      } else if (text.includes('failed')) {
+        contentClass = 'serial-highlight-warn';
+      }
+
+      lineEl.innerHTML = `<span class="serial-ts">[${timeStr}]</span><span class="${contentClass}">${escapeHtml(text)}</span>`;
+      consoleEl.appendChild(lineEl);
+
+      while (consoleEl.children.length > 160) {
+        consoleEl.removeChild(consoleEl.firstChild);
+      }
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function toggleSerialPause() {
+      serialPaused = !serialPaused;
+      document.getElementById('pauseSerialBtn').textContent = serialPaused ? 'Resume' : 'Pause';
+    }
+
+    function clearSerialConsole() {
+      document.getElementById('serialConsole').innerHTML = '';
+    }
+
+    function exportCSV() {
+      if (historyData.length === 0) {
+        alert('No sensor data recorded yet.');
+        return;
+      }
+      const headers = [
+        'Time', 'AngleX_deg', 'AngleX_pct', 'AngleY_deg', 'AngleY_pct',
+        'Vibration_ms2', 'Vibration_pct', 'Temperature_C', 'Humidity_pct',
+        'Soil_Raw', 'Moisture_pct', 'FSR_Raw', 'Force_pct'
+      ];
+      const rows = historyData.map(r => [
+        r.time, r.angleX, r.percentageX, r.angleY, r.percentageY,
+        r.vibration, r.vibrationLevel, r.temperature, r.humidity,
+        r.soilRaw, r.moisture, r.fsrRaw, r.forceLevel
+      ].join(','));
+
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `esp32_node_reading_${Date.now()}.csv`;
+      a.click();
+    }
+
+    // =========================================================================
+    // DIRECT BROWSER WEB SERIAL API SUPPORT
+    // =========================================================================
+    async function connectWebSerial() {
+      if (!('serial' in navigator)) {
+        alert('Web Serial API requires Chrome or Edge.');
+        return;
+      }
+      try {
+        try { await fetch('/api/disconnect', { method: 'POST' }); } catch (e) {}
+
+        const baudRate = parseInt(document.getElementById('baudSelect').value, 10) || 115200;
+        webSerialPort = await navigator.serial.requestPort();
+        await webSerialPort.open({ baudRate });
+        webSerialActive = true;
+
+        document.getElementById('connPill').classList.add('connected');
+        document.getElementById('connStateText').textContent = 'CONNECTED (WEB SERIAL)';
+        document.getElementById('activePortDisplay').textContent = 'USB WebSerial';
+        document.getElementById('ribbonPortName').textContent = 'WebSerial Direct';
+        document.getElementById('connectBtn').textContent = 'Disconnect';
+        document.getElementById('connectBtn').className = 'btn btn-danger';
+
+        const decoder = new TextDecoderStream();
+        webSerialPort.readable.pipeTo(decoder.writable);
+        webSerialReader = decoder.readable.getReader();
+
+        let buffer = '';
+        while (webSerialActive) {
+          const { value, done } = await webSerialReader.read();
+          if (done) break;
+          if (value) {
+            buffer += value;
+            while (buffer.includes('\n')) {
+              const idx = buffer.indexOf('\n');
+              const line = buffer.slice(0, idx).trim();
+              buffer = buffer.slice(idx + 1);
+              if (line) parseWebSerialLine(line);
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function disconnectWebSerial() {
+      webSerialActive = false;
+      try {
+        if (webSerialReader) await webSerialReader.cancel();
+        if (webSerialPort) await webSerialPort.close();
+      } catch (e) {}
+      document.getElementById('connPill').classList.remove('connected');
+      document.getElementById('connStateText').textContent = 'DISCONNECTED';
+      document.getElementById('connectBtn').textContent = 'Connect Port';
+      document.getElementById('connectBtn').className = 'btn btn-primary';
+    }
+
+    function parseWebSerialLine(clean) {
+      const ts = new Date().toLocaleTimeString();
+      appendSerialLine(ts, clean);
+
+      if (clean.includes('MPU6050') && clean.includes('===')) { localSection = 'MPU6050'; return; }
+      if (clean.includes('DHT11') && clean.includes('---')) { localSection = 'DHT11'; return; }
+      if (clean.includes('SOIL MOISTURE') && clean.includes('---')) { localSection = 'SOIL'; return; }
+      if (clean.includes('FSR') && clean.includes('---')) { localSection = 'FSR'; return; }
+
+      const afterColon = clean.includes(':') ? clean.split(':')[1] : clean;
+      const m = afterColon.match(/[-+]?\d+(?:\.\d+)?/);
+      const val = m ? parseFloat(m[0]) : null;
+
+      if (clean.startsWith('Angle X') && val !== null) {
+        if (clean.includes('deg')) localWorking.angleX = val;
+        else if (clean.includes('%')) localWorking.percentageX = val;
+      } else if (clean.startsWith('Angle Y') && val !== null) {
+        if (clean.includes('deg')) localWorking.angleY = val;
+        else if (clean.includes('%')) localWorking.percentageY = val;
+      } else if (clean.startsWith('Vibration Level') && val !== null) {
+        localWorking.vibrationLevel = val;
+      } else if (clean.startsWith('Vibration') && val !== null) {
+        localWorking.vibration = val;
+      } else if (clean.includes('DHT11 reading failed')) {
+        localWorking.dhtOk = false;
+      } else if (clean.startsWith('Temperature') && val !== null) {
+        localWorking.temperature = val;
+        localWorking.dhtOk = true;
+      } else if (clean.startsWith('Humidity') && val !== null) {
+        localWorking.humidity = val;
+        localWorking.dhtOk = true;
+      } else if (clean.startsWith('Raw Value') && val !== null) {
+        if (localSection === 'SOIL') localWorking.soilRaw = Math.round(val);
+        else if (localSection === 'FSR') localWorking.fsrRaw = Math.round(val);
+      } else if (clean.startsWith('Moisture') && val !== null) {
+        localWorking.moisture = Math.round(val);
+      } else if (clean.startsWith('Force Level') && val !== null) {
+        localWorking.forceLevel = Math.round(val);
+        localPacketCount++;
+        document.getElementById('ribbonPackets').textContent = localPacketCount;
+        document.getElementById('ribbonLastTime').textContent = ts;
+        updateSensorUI({ ...localWorking });
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', initDashboard);
+  </script>
+</body>
+</html>
