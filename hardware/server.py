@@ -275,6 +275,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         # Quiet standard polling logs
         pass
 
+    @staticmethod
+    def _project_root():
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+    @classmethod
+    def _first_existing_file(cls, candidates):
+        for path in candidates:
+            if os.path.isfile(path):
+                return path
+        return None
+
     def _send_json(self, data, status=200):
         body = json.dumps(data).encode("utf-8")
         self.send_response(status)
@@ -283,6 +294,34 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _serve_static_file(self, filepath, content_type=None):
+        if not os.path.isfile(filepath):
+            self.send_error(404, "File Not Found")
+            return
+        if content_type is None:
+            content_types = {
+                ".html": "text/html; charset=utf-8",
+                ".js": "application/javascript",
+                ".css": "text/css",
+                ".json": "application/json",
+                ".svg": "image/svg+xml",
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+            }
+            content_type = content_types.get(
+                os.path.splitext(filepath)[1].lower(),
+                "application/octet-stream",
+            )
+        with open(filepath, "rb") as file:
+            content = file.read()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -295,11 +334,120 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/status":
             self._send_json(manager.get_status())
             return
+        elif parsed.path == "/api/telemetry":
+            self._send_json({
+                "ok": True,
+                "latest": manager.latest_data,
+                "packetCount": manager.packet_count,
+                "lastUpdate": manager.last_update,
+                "connected": manager.connected,
+                "port": manager.port,
+            })
+            return
+        elif parsed.path == "/api/ai_prediction":
+            data = manager.latest_data
+            tilt = round(
+                (data.get("angleX", 0) ** 2 + data.get("angleY", 0) ** 2) ** 0.5,
+                2,
+            )
+            vibration = float(data.get("vibration") or 0)
+            force = float(data.get("forceLevel") or 0)
+            temperature = float(data.get("temperature") or 25.0)
+            displacement = round((force * 0.5) - (temperature - 24.6) * 0.05, 2)
+            velocity = round(vibration * 0.18, 2)
+            predicted_24h = round(displacement + velocity * 24.0, 2)
+
+            if abs(predicted_24h) >= 50.0:
+                risk_tier = "CRITICAL"
+            elif abs(predicted_24h) >= 25.0:
+                risk_tier = "WARNING"
+            elif abs(predicted_24h) >= 10.0:
+                risk_tier = "ADVISORY"
+            else:
+                risk_tier = "SAFE"
+
+            ttc = (
+                round((50.0 - abs(displacement)) / velocity, 2)
+                if velocity > 0.05
+                else 999.0
+            )
+            command = (
+                f"python main.py --node-id 45 --disp {displacement:.1f} "
+                f"--tilt {tilt:.1f} --vib {vibration:.2f} "
+                f"--temp {temperature:.1f} --vel {velocity:.1f}"
+            )
+            self._send_json({
+                "ok": True,
+                "node_id": 45,
+                "disp_corr_mm": displacement,
+                "tilt_deg": tilt,
+                "vibration_rms": vibration,
+                "temp_c": temperature,
+                "velocity_mm_h": velocity,
+                "pred_subsidence_24h_mm": predicted_24h,
+                "dgms_risk_tier": risk_tier,
+                "ttc_hours": ttc,
+                "cli_command": command,
+            })
+            return
+        elif parsed.path == "/api/heatmap":
+            nodes = []
+            data = manager.latest_data
+            force = float(data.get("forceLevel") or 0)
+            for row in range(10):
+                for column in range(10):
+                    node_id = row * 10 + column
+                    distance = ((column - 5) ** 2 + (row - 4) ** 2) ** 0.5
+                    factor = max(0.0, 1.0 - distance / 5.5)
+                    displacement = round(
+                        factor * (force * 0.45) + (1.0 - factor) * 4.2,
+                        2,
+                    )
+                    nodes.append({
+                        "node_id": node_id,
+                        "grid_x": column * 10.0,
+                        "grid_y": row * 10.0,
+                        "disp_mm": displacement,
+                        "intensity": round(displacement / 50.0, 3),
+                    })
+            self._send_json({"ok": True, "nodes": nodes})
+            return
         elif parsed.path == "/api/ports":
             self._send_json({"ports": manager.list_ports()})
             return
         elif parsed.path == "/api/raw":
             self._send_json({"lines": manager.raw_lines})
+            return
+        elif parsed.path.startswith("/twin"):
+            project_root = self._project_root()
+            relative_path = parsed.path[len("/twin"):].lstrip("/")
+            twin_dist = os.path.join(project_root, "tunnel-digital-twin", "dist")
+            repository_twin = os.path.join(project_root, "Digital Twin")
+            candidates = [
+                os.path.join(twin_dist, relative_path) if relative_path else
+                os.path.join(twin_dist, "index.html"),
+                os.path.join(repository_twin, relative_path) if relative_path else
+                os.path.join(repository_twin, "index.html"),
+            ]
+            target = self._first_existing_file(candidates)
+            if target:
+                self._serve_static_file(target)
+                return
+            self.send_error(404, "Digital Twin file not found")
+            return
+        elif parsed.path in {"/gis", "/gis/", "/heatmap", "/heatmap/"}:
+            project_root = self._project_root()
+            gis_file = self._first_existing_file([
+                os.path.join(project_root, "output", "subsidence_interactive.html"),
+                os.path.join(project_root, "..", "output", "subsidence_interactive.html"),
+            ])
+            if gis_file:
+                self._serve_static_file(
+                    gis_file,
+                    content_type="text/html; charset=utf-8",
+                )
+                return
+            self.send_error(404, "GIS dashboard not found")
             return
         elif parsed.path == "/api/stream":
             self.send_response(200)
@@ -368,4 +516,3 @@ if __name__ == "__main__":
     if manager.connected:
         print(f"Auto-connected to {manager.port} ({manager.port_description}) @ {manager.baudrate} baud")
     server.serve_forever()
-
