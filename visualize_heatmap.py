@@ -18,7 +18,6 @@ Date    : 2026-10-04
 from __future__ import annotations
 
 import numpy as np
-import wdac_compat  # noqa: F401
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")  # Non-interactive backend for production

@@ -74,6 +74,24 @@ flowchart TD
     S1 --> S2 --> S3 --> S4
 ```
 
+### 2.2 Apache Spark Distributed Big Data Pipeline (SIH 2026 Target Architecture)
+
+For scaling from single prototype coal panels to mine-wide industrial deployments (10,000+ underground and surface transducers), **Apache Spark** is integrated via two specialized modules:
+
+1. **`spark_feature_pipeline.py` (Distributed Batch Engine)**:
+   * Distributed thermal drift compensation across all partitions:
+     $$Disp_{\text{corr}} = Disp_{\text{raw}} - \alpha \cdot (T_{\text{curr}} - T_{\text{base}})$$
+   * Windowed analytical queries (`Window.partitionBy("Node_ID").orderBy("Timestamp")`) computing multi-lag memory features (`Disp_Lag_1h..6h`), subsidence velocities ($mm/h$), and DGMS safety tiers.
+   * Outputs partitioned Silver Parquet tables (`output/parquet/silver_features/`).
+
+2. **`spark_streaming_pipeline.py` (Structured Streaming Engine)**:
+   * **20-Second Micro-Batch Sliding Window** (`.trigger(processingTime="20 seconds")`).
+   * **Watermarking** (`.withWatermark("timestamp", "10 seconds")`) handling delayed/re-routed packets from LoRa mesh nodes.
+   * On-the-fly DGMS Risk Tier alerting and automated execution of the standardized downstream AI trigger:
+     ```bash
+     python main.py --node-id <id> --disp <disp> --tilt <tilt> --vib <vib> --temp <temp> --vel <vel>
+     ```
+
 ---
 
 ## 3. Input Datasets & Why Each Dataset Is Used
@@ -269,6 +287,9 @@ Ml for project coal/
 │   └── subsidence_interactive.html              # Interactive Plotly HTML Dashboard
 │
 ├── feature_engineering.py                       # Cleaning, Drift Compensation, Lags & Delta Targets
+├── spark_feature_pipeline.py                    # Apache Spark Distributed PySpark SQL Feature Engine
+├── spark_streaming_pipeline.py                  # Spark Structured Streaming 20s Window Aggregator
+├── kalman_filter.py                             # Geotechnical Multi-State Kalman Filter ([x, v]^T)
 ├── preprocess.py                                # Compatibility Wrapper Re-exporting Feature Pipeline
 ├── benchmark.py                                 # 4-Model Benchmarking & TTC Alert Engine
 ├── visualize_heatmap.py                         # RBF Surface Interpolation & Chart/Heatmap Renderer

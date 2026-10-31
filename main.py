@@ -32,7 +32,6 @@ import time
 import argparse
 from datetime import datetime
 import numpy as np
-import wdac_compat  # noqa: F401
 import pandas as pd
 from tabulate import tabulate as tabulate_fn
 
