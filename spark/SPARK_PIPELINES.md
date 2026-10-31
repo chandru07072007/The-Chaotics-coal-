@@ -203,4 +203,3 @@ The batch and streaming paths use compatible risk thresholds, but their
 displacement inputs differ: batch processing generally starts from a measured
 displacement column, while streaming derives a displacement proxy from force
 and temperature. This distinction should be retained when comparing results.
-

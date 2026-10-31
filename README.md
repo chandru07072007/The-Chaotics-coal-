@@ -287,8 +287,12 @@ Ml for project coal/
 │   └── subsidence_interactive.html              # Interactive Plotly HTML Dashboard
 │
 ├── feature_engineering.py                       # Cleaning, Drift Compensation, Lags & Delta Targets
-├── spark_feature_pipeline.py                    # Apache Spark Distributed PySpark SQL Feature Engine
-├── spark_streaming_pipeline.py                  # Spark Structured Streaming 20s Window Aggregator
+├── spark/                                      # Apache Spark batch, streaming, and documentation
+│   ├── spark_feature_pipeline.py               # Distributed PySpark SQL feature engine
+│   ├── spark_streaming_pipeline.py             # Structured Streaming 20s window aggregator
+│   ├── SPARK_ARCHITECTURE.md                   # Spark system architecture
+│   ├── SPARK_PIPELINES.md                      # Spark usage and operations guide
+│   └── spark_readme.md                         # Spark pipeline explanation
 ├── kalman_filter.py                             # Geotechnical Multi-State Kalman Filter ([x, v]^T)
 ├── preprocess.py                                # Compatibility Wrapper Re-exporting Feature Pipeline
 ├── benchmark.py                                 # 4-Model Benchmarking & TTC Alert Engine

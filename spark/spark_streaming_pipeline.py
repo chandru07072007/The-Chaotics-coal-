@@ -241,4 +241,3 @@ if __name__ == "__main__":
         print("[INFO] PySpark package not detected; running streaming micro-batch validation...")
         run_streaming_simulation_demo(trigger_interval_sec=20)
 
-
