@@ -158,4 +158,3 @@ if __name__ == "__main__":
 
     print("=" * 65)
     print("Kalman Filter successfully verified!")
-

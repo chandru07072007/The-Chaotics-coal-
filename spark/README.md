@@ -286,17 +286,17 @@ Ml for project coal/
 │   ├── subsidence_heatmap.png                   # 3-Panel GIS Subsidence & Risk Heatmap Image
 │   └── subsidence_interactive.html              # Interactive Plotly HTML Dashboard
 │
-├── feature_engineering.py                       # Cleaning, Drift Compensation, Lags & Delta Targets
-├── spark/                                      # Apache Spark batch, streaming, and documentation
-│   ├── spark_feature_pipeline.py               # Distributed PySpark SQL feature engine
-│   ├── spark_streaming_pipeline.py             # Structured Streaming 20s window aggregator
-│   ├── SPARK_ARCHITECTURE.md                   # Spark system architecture
-│   ├── SPARK_PIPELINES.md                      # Spark usage and operations guide
-│   └── spark_readme.md                         # Spark pipeline explanation
-├── kalman_filter.py                             # Geotechnical Multi-State Kalman Filter ([x, v]^T)
-├── preprocess.py                                # Compatibility Wrapper Re-exporting Feature Pipeline
-├── benchmark.py                                 # 4-Model Benchmarking & TTC Alert Engine
-├── visualize_heatmap.py                         # RBF Surface Interpolation & Chart/Heatmap Renderer
-├── main.py                                      # Master Pipeline Orchestrator & CMD Input Analyzer
-└── README.md                                    # Complete Project Documentation
+├── spark/                                      # ML and Apache Spark source files
+│   ├── feature_engineering.py                 # Cleaning, drift compensation, lags, and targets
+│   ├── spark_feature_pipeline.py              # Distributed PySpark SQL feature engine
+│   ├── spark_streaming_pipeline.py             # Spark Structured Streaming aggregator
+│   ├── kalman_filter.py                       # Geotechnical multi-state Kalman filter
+│   ├── preprocess.py                          # Feature-pipeline compatibility wrapper
+│   ├── benchmark.py                           # Model benchmarking and TTC alert engine
+│   ├── visualize_heatmap.py                   # Heatmap and chart renderer
+│   ├── main.py                                # Master pipeline orchestrator
+│   ├── SPARK_ARCHITECTURE.md                  # Spark architecture guide
+│   ├── SPARK_PIPELINES.md                     # Spark operations guide
+│   ├── spark_readme.md                        # Spark pipeline explanation
+│   └── README.md                              # Complete project documentation
 ```

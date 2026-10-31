@@ -47,4 +47,3 @@ __all__ = [
 if __name__ == "__main__":
     df, mesh = run_preprocessing()
     print(df.head())
-
