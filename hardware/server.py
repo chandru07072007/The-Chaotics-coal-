@@ -9,6 +9,14 @@ from urllib.parse import urlparse, parse_qs
 import serial
 import serial.tools.list_ports
 
+try:
+    from mongo_manager import mongo_manager
+except ImportError:
+    try:
+        from hardware.mongo_manager import mongo_manager
+    except ImportError:
+        mongo_manager = None
+
 
 class SerialManager:
     def __init__(self):
@@ -236,6 +244,11 @@ class SerialManager:
         self.working_data["timestamp"] = now
         self.working_data["packetId"] = self.packet_count
         self.latest_data = dict(self.working_data)
+
+        # Persist to MongoDB
+        if mongo_manager and mongo_manager.connected:
+            mongo_manager.store_hardware_telemetry(self.latest_data)
+
         self._broadcast("sensor_data", {
             "data": self.latest_data,
             "packetCount": self.packet_count,
@@ -376,7 +389,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 f"--tilt {tilt:.1f} --vib {vibration:.2f} "
                 f"--temp {temperature:.1f} --vel {velocity:.1f}"
             )
-            self._send_json({
+            prediction_payload = {
                 "ok": True,
                 "node_id": 45,
                 "disp_corr_mm": displacement,
@@ -388,7 +401,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "dgms_risk_tier": risk_tier,
                 "ttc_hours": ttc,
                 "cli_command": command,
-            })
+            }
+            if mongo_manager and mongo_manager.connected:
+                mongo_manager.store_aiml_prediction(prediction_payload)
+
+            self._send_json(prediction_payload)
             return
         elif parsed.path == "/api/heatmap":
             nodes = []
@@ -410,7 +427,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         "disp_mm": displacement,
                         "intensity": round(displacement / 50.0, 3),
                     })
+            if mongo_manager and mongo_manager.connected:
+                mongo_manager.store_heatmap_nodes(nodes)
             self._send_json({"ok": True, "nodes": nodes})
+            return
+        elif parsed.path == "/api/mongo":
+            stats = mongo_manager.get_latest_stats() if mongo_manager else {"connected": False}
+            self._send_json({"ok": True, "mongo": stats})
             return
         elif parsed.path == "/api/ports":
             self._send_json({"ports": manager.list_ports()})
