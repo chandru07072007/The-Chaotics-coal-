@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>THE CHAOTICS — Intelligent IoT & AI Coal Mine Subsidence Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- React & Babel CDN so React runs directly in browser without Vite/Rollup block -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #f5f5f5;
+      --bg-card: #ffffff;
+      --bg-cream: #f7f5f4;
+      --border-color: #000000;
+      --text-primary: #222222;
+      --text-muted: #555555;
+      --font-serif-title: 'Castellar', 'Cinzel', 'Times New Roman', serif;
+      --font-serif-sub: 'Cinzel', 'Copperplate Gothic Bold', serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    .app {
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    /* Full-height sections */
+    .section {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 4rem 2rem 5rem 2rem;
+      position: relative;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    /* Bouncing scroll indicator */
+    .scroll-indicator {
+      position: absolute;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.5rem;
+      text-decoration: none;
+      color: var(--text-primary);
+      border: 1.5px solid var(--border-color);
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #ffffff;
+      animation: bounce 2s infinite ease-in-out;
+      box-shadow: 2px 2px 0px #000000;
+      transition: all 0.2s;
+    }
+    .scroll-indicator:hover {
+      background: #000000;
+      color: #ffffff;
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {
+        transform: translate(-50%, 0);
+      }
+      40% {
+        transform: translate(-50%, -12px);
+      }
+      60% {
+        transform: translate(-50%, -6px);
+      }
+    }
+
+    /* Section 1: Hero */
+    .hero-section {
+      background: var(--bg-cream);
+      text-align: center;
+    }
+    .hero-subtitle {
+      font-family: var(--font-sans);
+      font-size: 1.25rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      font-weight: 500;
+    }
+    .hero-title {
+      font-family: var(--font-serif-title);
+      font-size: clamp(2.5rem, 7vw, 5.5rem);
+      letter-spacing: 0.12em;
+      color: #000000;
+      text-transform: uppercase;
+      font-weight: 800;
+      line-height: 1.1;
+      text-shadow: 1px 1px 0px rgba(0,0,0,0.15);
+    }
+    .hero-badge {
+      display: inline-block;
+      margin-top: 1.5rem;
+      padding: 0.5rem 1.4rem;
+      border: 1.5px solid var(--border-color);
+      background: #ffffff;
+      font-family: var(--font-serif-sub);
+      font-size: 0.85rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      box-shadow: 3px 3px 0px #000000;
+    }
+
+    /* Common Section Titles */
+    .section-title {
+      font-family: var(--font-serif-title);
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 0.5rem;
+      color: #000000;
+      font-weight: 700;
+    }
+    .section-subtitle {
+      font-family: var(--font-serif-sub);
+      font-size: 0.95rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+    }
+
+    /* 16:9 Frame container */
+    .frame-box-16-9 {
+      width: 100%;
+      max-width: 1000px;
+      aspect-ratio: 16 / 9;
+      border: 2px solid var(--border-color);
+      background: #ffffff;
+      box-shadow: 8px 8px 0px #000000;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .frame-box-16-9 iframe,
+    .frame-box-16-9 video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border: none;
+    }
+
+    /* Section 3: 4-Box Descending Staircase */
+    .staircase-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 1200px;
+      margin-top: 1rem;
+      margin-bottom: 3rem;
+    }
+    .card-wrapper-1 { transform: translateY(0px); }
+    .card-wrapper-2 { transform: translateY(35px); }
+    .card-wrapper-3 { transform: translateY(70px); }
+    .card-wrapper-4 { transform: translateY(105px); }
+
+    .staircase-card {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-color);
+      box-shadow: 5px 5px 0px #000000;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.25s ease;
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+    }
+    .staircase-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 8px 8px 0px #000000;
+    }
+    .card-image-wrap {
+      width: 100%;
+      height: 170px;
+      border-bottom: 1.5px solid var(--border-color);
+      background: #e5e5e5;
+      overflow: hidden;
+      position: relative;
+    }
+    .card-image-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    .staircase-card:hover .card-image-wrap img {
+      transform: scale(1.05);
+    }
+    .card-content {
+      padding: 1.25rem 1rem 2.8rem 1rem;
+      flex: 1;
+    }
+    .card-step-badge {
+      font-family: var(--font-serif-sub);
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #000000;
+      margin-bottom: 0.4rem;
+    }
+    .card-title {
+      font-family: var(--font-serif-sub);
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.35;
+      color: #111111;
+    }
+    .card-view-badge {
+      position: absolute;
+      bottom: 0.75rem;
+      right: 0.75rem;
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 0.25rem 0.55rem;
+      border: 1px solid var(--border-color);
+      background: var(--bg-cream);
+      box-shadow: 2px 2px 0px #000000;
+    }
+
+    /* Section 4: Alternating Zig-Zag Grid */
+    .zigzag-container {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 3.5rem;
+      margin-top: 1rem;
+    }
+    .zigzag-row {
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+      background: #ffffff;
+      border: 1.5px solid var(--border-color);
+      box-shadow: 6px 6px 0px #000000;
+      padding: 1.75rem;
+    }
+    .zigzag-row.reverse {
+      flex-direction: row-reverse;
+    }
+    .zigzag-media {
+      flex: 1.2;
+      min-width: 320px;
+      aspect-ratio: 16 / 10;
+      border: 1.5px solid var(--border-color);
+      overflow: hidden;
+      background: #000000;
+    }
+    .zigzag-media video,
+    .zigzag-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .zigzag-info {
+      flex: 1;
+      padding: 0.5rem;
+    }
+    .zigzag-tag {
+      font-family: var(--font-serif-sub);
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+    .zigzag-title {
+      font-family: var(--font-serif-title);
+      font-size: 1.55rem;
+      letter-spacing: 0.06em;
+      line-height: 1.3;
+      margin-bottom: 1rem;
+      color: #000000;
+    }
+    .zigzag-desc {
+      color: #333333;
+      font-size: 0.96rem;
+      line-height: 1.65;
+    }
+
+    /* Modal System */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 10, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .modal-card {
+      background: #ffffff;
+      border: 2px solid #000000;
+      box-shadow: 12px 12px 0px #000000;
+      width: 100%;
+      max-width: 1050px;
+      max-height: 85vh;
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      position: relative;
+      overflow: hidden;
+    }
+    .modal-media-col {
+      background: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 2px solid #000000;
+      position: relative;
+    }
+    .modal-media-col video,
+    .modal-media-col img {
+      width: 100%;
+      height: 100%;
+      max-height: 80vh;
+      object-fit: contain;
+    }
+    .modal-info-col {
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: var(--bg-cream);
+      overflow-y: auto;
+    }
+    .modal-step-tag {
+      font-family: var(--font-serif-sub);
+      font-size: 0.85rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: #444444;
+    }
+    .modal-step-title {
+      font-family: var(--font-serif-title);
+      font-size: 1.85rem;
+      line-height: 1.25;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.25rem;
+      color: #000000;
+    }
+    .modal-step-desc {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: #2b2b2b;
+      margin-bottom: 1.5rem;
+    }
+    .modal-close-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: #ffffff;
+      border: 1.5px solid #000000;
+      width: 36px;
+      height: 36px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 2px 2px 0px #000000;
+      z-index: 10;
+    }
+    .modal-close-btn:hover {
+      background: #000000;
+      color: #ffffff;
+    }
+    .modal-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px;
+      height: 44px;
+      background: #ffffff;
+      border: 2px solid #000000;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 3px 3px 0px #000000;
+      z-index: 10;
+      transition: all 0.2s;
+    }
+    .modal-nav-btn:hover {
+      background: #000000;
+      color: #ffffff;
+    }
+    .modal-prev-btn { left: 1rem; }
+    .modal-next-btn { right: 1rem; }
+
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      .staircase-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .card-wrapper-1, .card-wrapper-2, .card-wrapper-3, .card-wrapper-4 {
+        transform: translateY(0);
+      }
+      .zigzag-row, .zigzag-row.reverse {
+        flex-direction: column;
+      }
+      .zigzag-media {
+        width: 100%;
+        min-width: unset;
+      }
+      .modal-card {
+        grid-template-columns: 1fr;
+        max-height: 90vh;
+      }
+      .modal-media-col {
+        border-right: none;
+        border-bottom: 2px solid #000000;
+        height: 260px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .staircase-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero-title {
+        font-size: 2.2rem;
+      }
+      .section {
+        padding: 3rem 1rem 4rem 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React Babel Application Component -->
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const SOLUTION_STEPS = [
+      {
+        id: 1,
+        stepTag: "STEP 01 OF 04",
+        title: "Smart Surface & Subsurface Sensing Grid",
+        thumb: "/image/sensor datails.webp",
+        video: null,
+        description: "Dense wireless array of MEMS 3-axis vibration sensors (MPU6050), high-precision geotechnical tilt transducers, displacement strain gauges, and capacitive pore-water soil pressure probes capturing microscopic rock strata shifts."
+      },
+      {
+        id: 2,
+        stepTag: "STEP 02 OF 04",
+        title: "Self-Healing LoRa Mesh Telemetry",
+        thumb: "/image/comucation.webp",
+        video: "/video/unifited sloution/self healing.mp4",
+        description: "Decentralized, fault-tolerant sub-GHz LoRa/Zigbee mesh routing network capable of dynamic multi-hop packet rerouting around severe rock mass fracturing, strata absorption, and open-cast highwall collapse."
+      },
+      {
+        id: 3,
+        stepTag: "STEP 03 OF 04",
+        title: "Predictive 3D Digital Twin Simulation",
+        thumb: "/image/digital-twin-main.webp",
+        video: "/video/unifited sloution/digit twin.mp4",
+        description: "High-fidelity WebGL 3D digital twin rendering real-time borehole arrays, tunnel alignment convergence, and dynamic upper-layer surface deformation heatmaps with Gaussian fault-line spatial interpolation."
+      },
+      {
+        id: 4,
+        stepTag: "STEP 04 OF 04",
+        title: "Coal Mining Geological Section & Alerts",
+        thumb: "/image/ALERT.png",
+        video: "/video/unifited sloution/model.mp4",
+        description: "Stratigraphic 3D geotechnical section mapping coal seam extraction, overburden stresses, and automated DGMS statutory threshold alerts with real-time Time-To-Critical (TTC) forecasting."
+      }
+    ];
+
+    function App() {
+      const [activeModalStep, setActiveModalStep] = useState(null);
+
+      // Handle keyboard arrow & escape navigation
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (activeModalStep === null) return;
+          if (e.key === "Escape") {
+            setActiveModalStep(null);
+          } else if (e.key === "ArrowRight") {
+            setActiveModalStep((prev) => (prev + 1) % SOLUTION_STEPS.length);
+          } else if (e.key === "ArrowLeft") {
+            setActiveModalStep((prev) => (prev - 1 + SOLUTION_STEPS.length) % SOLUTION_STEPS.length);
+          }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+      }, [activeModalStep]);
+
+      const currentStep = activeModalStep !== null ? SOLUTION_STEPS[activeModalStep] : null;
+
+      return (
+        <div className="app">
+
+          {/* Section 1: Hero / Welcome Screen */}
+          <section id="welcome" className="section hero-section">
+            <h2 className="hero-subtitle">Welcome To</h2>
+            <h1 className="hero-title">THE CHAOTICS</h1>
+            <div className="hero-badge">
+              Intelligent IoT & AI Coal Mine Subsidence Platform
+            </div>
+          </section>
+
+          {/* Section 2: Problem Statement */}
+          <section id="problem-statement" className="section" style={{ background: '#f5f5f5' }}>
+            <h2 className="section-title">PROBLEM STATEMENT</h2>
+            <p className="section-subtitle">Catastrophic Ground Subsidence in Unmonitored Coal Seams</p>
+            <div className="frame-box-16-9">
+              <video
+                src="/video/problem/When Abandoned Mines Collapse(720P_HD).mp4"
+                autoPlay
+                loop
+                muted
+                controls
+                playsInline
+                preload="auto"
+                poster="/image/sensor datails.webp"
+              >
+                Your browser does not support HTML5 video.
+              </video>
+            </div>
+          </section>
+
+          {/* Section 3: Our Solution – 4-Box Descending Diagonal Staircase */}
+          <section id="our-solution" className="section" style={{ background: '#ffffff', minHeight: '115vh' }}>
+            <h2 className="section-title">OUR SOLUTION</h2>
+            <p className="section-subtitle">YOU ARE SEE SAME SOLUTION MANY PPT</p>
+
+            <div className="staircase-grid">
+              {SOLUTION_STEPS.map((step, idx) => (
+                <div key={step.id} className={`card-wrapper-${idx + 1}`}>
+                  <div className="staircase-card" onClick={() => setActiveModalStep(idx)}>
+                    <div className="card-image-wrap">
+                      <img src={step.thumb} alt={step.title} loading="lazy" />
+                    </div>
+                    <div className="card-content">
+                      <div className="card-step-badge">STEP 0{step.id}</div>
+                      <div className="card-title">{step.title}</div>
+                      <div className="card-view-badge">Click to view ↗</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Section 4: Unified Solution – Alternating Zig-Zag Grid */}
+          <section id="unified-solution" className="section" style={{ background: '#f7f5f4', minHeight: 'auto', paddingBottom: '7rem' }}>
+            <h2 className="section-title">UNIFIED SOLUTION</h2>
+            <p className="section-subtitle">Deep Hardware & Geotechnical AI Integration</p>
+
+            <div className="zigzag-container">
+              {/* Row 1: Left Media, Right Text */}
+              <div className="zigzag-row">
+                <div className="zigzag-media">
+                  <img src="/image/sensor datails.webp" alt="Smart Surface Sensing Grid" loading="lazy" />
+                </div>
+                <div className="zigzag-info">
+                  <div className="zigzag-tag">GEOTECHNICAL TRANSDUCERS</div>
+                  <h3 className="zigzag-title">SMART SURFACE SENSING GRID</h3>
+                  <p className="zigzag-desc">
+                    Comprehensive multi-modal array deploying MEMS 3-axis inclinometers, micro-strain crack gauges, capacitive moisture sensors, and piezoelectric ground vibration probes engineered for real-time edge telemetry.
+                  </p>
+                </div>
+              </div>
+
+              {/* Row 2: Right Media, Left Text */}
+              <div className="zigzag-row reverse">
+                <div className="zigzag-media">
+                  <video
+                    src="/video/unifited sloution/self healing.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                </div>
+                <div className="zigzag-info">
+                  <div className="zigzag-tag">WIRELESS TELEMETRY</div>
+                  <h3 className="zigzag-title">SELF-HEALING LORA MESH</h3>
+                  <p className="zigzag-desc">
+                    Autonomous multi-hop mesh routing across an N×N surface benchmark grid. Dynamic packet rerouting prevents data blackouts even during severe strata rupture, bench collapse, or excavator line-of-sight obstruction.
+                  </p>
+                </div>
+              </div>
+
+              {/* Row 3: Left Media, Right Text */}
+              <div className="zigzag-row">
+                <div className="zigzag-media">
+                  <video
+                    src="/video/unifited sloution/digit twin.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                </div>
+                <div className="zigzag-info">
+                  <div className="zigzag-tag">REAL-TIME TWIN SYNCHRONIZATION</div>
+                  <h3 className="zigzag-title">PREDICTIVE 3D DIGITAL TWIN</h3>
+                  <p className="zigzag-desc">
+                    Synchronized Three.js WebGL simulation featuring dynamic vertex color displacement, spatial fault-line Gaussian decay shading, and structural safety index calculations across 100 tunnel sections.
+                  </p>
+                </div>
+              </div>
+
+              {/* Row 4: Right Media, Left Text */}
+              <div className="zigzag-row reverse">
+                <div className="zigzag-media">
+                  <video
+                    src="/video/unifited sloution/model.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                </div>
+                <div className="zigzag-info">
+                  <div className="zigzag-tag">DGMS SAFETY ENGINE</div>
+                  <h3 className="zigzag-title">COAL MINING GEOLOGICAL MODEL</h3>
+                  <p className="zigzag-desc">
+                    Stratigraphic geotechnical mapping correlating coal seam extraction voids with surface subsidence rates, calculating statutory risk tiers (Safe, Advisory, Warning, Critical) and Time-To-Critical (TTC) windows.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Section 5: YouTube Video Showcase */}
+          <section id="youtube-video" className="section" style={{ background: '#f5f5f5' }}>
+            <h2 className="section-title">YOU TUBE VIDEO</h2>
+            <p className="section-subtitle">Coal Mine Subsidence Mechanism & Geotechnical Analysis</p>
+            <div className="frame-box-16-9">
+              <iframe
+                src="https://www.youtube.com/embed/R2IBYPBCXAk?rel=0&modestbranding=1"
+                title="YouTube Video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </section>
+
+          {/* Section 6: Live System Demo */}
+          <section id="demo" className="section" style={{ background: '#ffffff' }}>
+            <h2 className="section-title">DEMO</h2>
+            <p className="section-subtitle">MUNKANIPPU Hardware & AI Subterranean Platform in Action</p>
+            <div className="frame-box-16-9">
+              <iframe
+                src="https://www.youtube.com/embed/vGwQXER6Wq8?rel=0&modestbranding=1"
+                title="Coal Mine Monitoring System Demo"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </section>
+
+          {/* Split Two-Pane Modal for Solution Steps */}
+          {currentStep && (
+            <div className="modal-backdrop" onClick={() => setActiveModalStep(null)}>
+              <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="modal-close-btn"
+                  onClick={() => setActiveModalStep(null)}
+                  title="Close (Esc)"
+                >
+                  ✕
+                </button>
+
+                <button
+                  className="modal-nav-btn modal-prev-btn"
+                  onClick={() => setActiveModalStep((prev) => (prev - 1 + SOLUTION_STEPS.length) % SOLUTION_STEPS.length)}
+                  title="Previous (Left Arrow)"
+                >
+                  ‹
+                </button>
+
+                <button
+                  className="modal-nav-btn modal-next-btn"
+                  onClick={() => setActiveModalStep((prev) => (prev + 1) % SOLUTION_STEPS.length)}
+                  title="Next (Right Arrow)"
+                >
+                  ›
+                </button>
+
+                {/* Left Column: Media Player */}
+                <div className="modal-media-col">
+                  {currentStep.video ? (
+                    <video
+                      src={currentStep.video}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      controls
+                    />
+                  ) : (
+                    <img src={currentStep.thumb} alt={currentStep.title} />
+                  )}
+                </div>
+
+                {/* Right Column: Technical Details */}
+                <div className="modal-info-col">
+                  <div className="modal-step-tag">{currentStep.stepTag}</div>
+                  <h3 className="modal-step-title">{currentStep.title}</h3>
+                  <p className="modal-step-desc">{currentStep.description}</p>
+                  <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #000000', fontSize: '0.85rem', color: '#666666' }}>
+                    Tip: Use Left/Right arrow keys to cycle through steps, or ESC to dismiss.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+*/node_modules/
+dist/
+*/dist/
+.vite/
+*/.vite/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Media and large assets (>100MB rejected by GitHub)
+*.mp4
+*.glb
+*.bin
+*.tar.gz
+public/video/
+*/public/video/
+src/video/
+*/src/video/
+
+# Environment & logs
+.env
+.env.local
+*.log
