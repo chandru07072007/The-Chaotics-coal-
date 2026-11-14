@@ -10,19 +10,154 @@
     <div id="app">
       <div id="canvas-container"></div>
       
-      <div id="header" class="overlay">
-        <h1>3D Tunnel + Geological Ground Digital Twin</h1>
-        <p>Tunnel Breakage / Failure Zone Estimation (PROTOTYPE)</p>
-      </div>
+      <!-- Top header title removed as requested for clean 3D simulation -->
 
       <div class="camera-controls overlay" id="camera-controls">
-        <button id="cam-iso">ISOMETRIC</button>
-        <button id="cam-top">TOP</button>
-        <button id="cam-front">PORTAL</button>
-        <button id="cam-side">SIDE</button>
-        <button id="cam-section">SECTION</button>
-        <button id="cam-inside">INSIDE</button>
+        <button id="cam-portal" class="btn-portal-active" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800; background: rgba(8, 28, 56, 0.9);">PORTAL SPECTRUM (MONGODB)</button>
+        <button id="cam-iso">OPEN-PIT (EXTERIOR)</button>
+        <button id="cam-inside">INSIDE MINE</button>
+        <button id="cam-top">TOP VIEW</button>
+        <button id="cam-front">PORTAL DRIFT</button>
+        <button id="cam-side">SECTION</button>
         <button id="cam-failure" style="color: var(--critical); border-color: var(--critical);">LOCATE FAILURE</button>
+        <button id="btn-toggle-heatmap" style="color: #06b6d4; border-color: #06b6d4;">HEATMAP: ON</button>
+      </div>
+
+      <!-- Holographic Leader Lines SVG Overlay for Portal Sectors -->
+      <svg id="portal-leader-svg" class="portal-svg-overlay"></svg>
+
+      <!-- Floating Holographic Sector Inspection Cards (Matching media_1794596835063_0650c3c7.jpg) -->
+      <div id="portal-cards-overlay" class="portal-overlay-container">
+        <!-- Sector C (Northwest) -->
+        <div id="card-sec-c" class="portal-holo-card" data-sec="SEC-C">
+          <div class="holo-header">
+            <span class="holo-badge code">C区</span>
+            <span class="holo-badge mat">煤炭</span>
+            <span class="holo-status status-advisory" id="sec-c-status">ADVISORY</span>
+          </div>
+          <div class="holo-body">
+            <div class="holo-row">
+              <span class="holo-lbl">面积:</span>
+              <span class="holo-val" id="sec-c-area">2100.1 m²</span>
+            </div>
+            <div class="holo-row">
+              <span class="holo-lbl">重量:</span>
+              <span class="holo-val" id="sec-c-vol">2625.1 t</span>
+            </div>
+            <div class="holo-row">
+              <span class="holo-lbl">位移:</span>
+              <span class="holo-val disp" id="sec-c-disp">8.40 mm</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sector B (Northeast - 测试分区) -->
+        <div id="card-sec-b" class="portal-holo-card" data-sec="SEC-B">
+          <div class="holo-header">
+            <span class="holo-badge code">测试分区</span>
+            <span class="holo-badge mat">煤炭</span>
+            <span class="holo-status status-warning" id="sec-b-status">WARNING</span>
+          </div>
+          <div class="holo-body">
+            <div class="holo-row">
+              <span class="holo-lbl">面积:</span>
+              <span class="holo-val" id="sec-b-area">7160.37 m²</span>
+            </div>
+            <div class="holo-row">
+              <span class="holo-lbl">重量:</span>
+              <span class="holo-val" id="sec-b-vol">7160.4 t</span>
+            </div>
+            <div class="holo-row">
+              <span class="holo-lbl">位移:</span>
+              <span class="holo-val disp" id="sec-b-disp">18.20 mm</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sector A (Southwest) -->
+        <div id="card-sec-a" class="portal-holo-card" data-sec="SEC-A">
+          <div class="holo-header">
+            <span class="holo-badge code">A区</span>
+            <span class="holo-badge mat">煤炭</span>
+            <span class="holo-status status-critical" id="sec-a-status">CRITICAL</span>
+          </div>
+          <div class="holo-body">
+            <div class="holo-row">
+              <span class="holo-lbl">面积:</span>
+              <span class="holo-val" id="sec-a-area">10772.6 m²</span>
+            </div>
+            <div class="holo-row">
+              <span class="holo-lbl">体积:</span>
+              <span class="holo-val" id="sec-a-vol">13465.8 m³</span>
+            </div>
+            <div class="holo-row">
+              <span class="holo-lbl">位移:</span>
+              <span class="holo-val disp" id="sec-a-disp">44.08 mm</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sector D (Southeast - E区) -->
+        <div id="card-sec-d" class="portal-holo-card" data-sec="SEC-D">
+          <div class="holo-header">
+            <span class="holo-badge code">E区</span>
+            <span class="holo-badge mat">煤炭</span>
+            <span class="holo-status status-safe" id="sec-d-status">SAFE</span>
+          </div>
+          <div class="holo-body">
+            <div class="holo-row">
+              <span class="holo-lbl">面积:</span>
+              <span class="holo-val" id="sec-d-area">16849.8 m²</span>
+            </div>
+            <div class="holo-row">
+              <span class="holo-lbl">重量:</span>
+              <span class="holo-val" id="sec-d-vol">21062.3 t</span>
+            </div>
+            <div class="holo-row">
+              <span class="holo-lbl">位移:</span>
+              <span class="holo-val disp" id="sec-d-disp">5.10 mm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vertical Elevation / Subsidence Colorbar (Matching media_1794596835063_0650c3c7.jpg) -->
+      <div id="portal-colorbar-container" class="portal-colorbar-panel">
+        <div class="colorbar-header">
+          <div class="mongo-live-tag">
+            <span class="live-pulse"></span>
+            <span>MONGODB</span>
+          </div>
+          <div class="colorbar-title">ELEVATION</div>
+        </div>
+        <div class="colorbar-wrapper">
+          <div class="colorbar-gradient"></div>
+          <div class="colorbar-scale">
+            <span class="scale-mark mark-19">19m</span>
+            <span class="scale-mark mark-15">15m</span>
+            <span class="scale-mark mark-10">10m</span>
+            <span class="scale-mark mark-5">5m</span>
+            <span class="scale-mark mark-0">0m</span>
+          </div>
+        </div>
+        <div class="colorbar-footer">
+          <span id="mongo-total-docs">3,125 rec</span>
+        </div>
+      </div>
+
+      <!-- DGMS Subsidence Risk Heatmap Legend -->
+      <div id="heatmap-legend" class="overlay panel">
+        <div class="legend-title">
+          <span>DGMS SUBSIDENCE RISK</span>
+          <span style="font-size:0.68rem; color:#10b981;">ACTIVE</span>
+        </div>
+        <div class="legend-bar"></div>
+        <div class="legend-labels">
+          <span style="color:#10b981;">SAFE &lt;10mm</span>
+          <span style="color:#facc15;">ADVISORY</span>
+          <span style="color:#f97316;">WARNING</span>
+          <span style="color:#ef4444;">CRITICAL &ge;50mm</span>
+        </div>
       </div>
 
       <!-- Right Sidebar -->
@@ -108,7 +243,8 @@
         </div>
       </div>
 
-      <!-- Bottom Panel for Charts -->
+      <!-- Bottom Panel for Charts (Removed as requested) -->
+      <!--
       <div id="bottom-panel" class="overlay">
         <div class="chart-container">
           <canvas id="chart-stress"></canvas>
@@ -120,6 +256,7 @@
           <canvas id="chart-risk"></canvas>
         </div>
       </div>
+      -->
     </div>
     
     <script type="module" src="/src/main.ts"></script>

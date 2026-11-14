@@ -268,6 +268,8 @@ python main.py --node-id 45 --disp 42.5 --tilt 4.2 --vib 9.85 --temp 31.0 --vel 
 
 This triggers the AI predictive model (`main.py`) to infer the next 6-hour and 24-hour subsidence delta, evaluate Directorate General of Mines Safety (DGMS) risk tiers, and compute Time-To-Critical (TTC) alert margins.
 
+The hardware dashboard displays the latest generated command and prediction summary in its **Latest AI Sensor Analysis** panel. It refreshes from `/api/ai_prediction` every 20 seconds using the current dual-node telemetry values.
+
 ---
 
 ## 7. Calibration & Operational Guidelines

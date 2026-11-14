@@ -13,26 +13,31 @@ export class ThreeScene {
     const container = document.getElementById(containerId)!;
     
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x8899aa); // Overcast sky
-    this.scene.fog = new THREE.FogExp2(0x8899aa, 0.003); // Atmospheric distance fog
+    
+    // CesiumJS / Bentley iTwin Dark Geotechnical Subterranean Atmosphere (No harsh glare)
+    this.scene.background = new THREE.Color(0x0a0f1d);
+    this.scene.fog = new THREE.FogExp2(0x0a0f1d, 0.0022);
 
-    this.camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 0.1, 2000);
-    // Position camera just inside the left portal, looking down the tunnel
-    this.camera.position.set(-140, -18, 0);
+    this.camera = new THREE.PerspectiveCamera(54, container.clientWidth / container.clientHeight, 0.1, 2000);
+    // Initial camera position: Inside the coal mine tunnel looking down the illuminated drift
+    this.camera.position.set(-135, -20.2, 0);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
     container.appendChild(this.renderer.domElement);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
-    // Target the center of the tunnel
-    this.controls.target.set(0, -20, 0);
-    this.controls.maxDistance = 500;
-    this.controls.maxPolarAngle = Math.PI / 2 + 0.2; // Allow looking slightly below the horizon
+    // Look straight down the tunnel gallery along the rails
+    this.controls.target.set(-70, -20.2, 0);
+    this.controls.maxDistance = 600;
+    this.controls.maxPolarAngle = Math.PI / 2 + 0.15;
 
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
@@ -43,31 +48,45 @@ export class ThreeScene {
   }
 
   private setupLighting() {
-    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    // 1. Soft subterranean ambient light (toned down, no blinding white glare)
+    const ambient = new THREE.AmbientLight(0x94a3b8, 0.35);
     this.scene.add(ambient);
 
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
-    hemiLight.position.set(0, 200, 0);
+    // 2. Dual-hemisphere geotechnical sky & ground bounce
+    const hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x0f172a, 0.4);
+    hemiLight.position.set(0, 150, 0);
     this.scene.add(hemiLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(100, 200, 50);
+    // 3. Directional sun for surface terrain topography (soft daylight)
+    const dirLight = new THREE.DirectionalLight(0xfff7ed, 0.55);
+    dirLight.position.set(120, 180, 80);
     dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 4096;
-    dirLight.shadow.mapSize.height = 4096;
-    dirLight.shadow.camera.left = -200;
-    dirLight.shadow.camera.right = 200;
-    dirLight.shadow.camera.top = 200;
-    dirLight.shadow.camera.bottom = -200;
-    dirLight.shadow.bias = -0.0001;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.left = -220;
+    dirLight.shadow.camera.right = 220;
+    dirLight.shadow.camera.top = 220;
+    dirLight.shadow.camera.bottom = -220;
+    dirLight.shadow.bias = -0.0002;
     this.scene.add(dirLight);
-    
-    // Grid and Axes for engineering look
-    const grid = new THREE.GridHelper(400, 40, 0x444444, 0x222222);
-    this.scene.add(grid);
 
-    const axes = new THREE.AxesHelper(50);
-    this.scene.add(axes);
+    // 4. Industrial Mining Portal Floodlights (authentic coal mine workface illumination)
+    const portalSpotWest = new THREE.SpotLight(0xfef08a, 1.2, 140, Math.PI / 5, 0.5);
+    portalSpotWest.position.set(-165, 8, 25);
+    portalSpotWest.target.position.set(-145, -20, 0);
+    this.scene.add(portalSpotWest);
+    this.scene.add(portalSpotWest.target);
+
+    const portalSpotEast = new THREE.SpotLight(0xfef08a, 1.2, 140, Math.PI / 5, 0.5);
+    portalSpotEast.position.set(165, 8, 25);
+    portalSpotEast.target.position.set(145, -20, 0);
+    this.scene.add(portalSpotEast);
+    this.scene.add(portalSpotEast.target);
+
+    // 5. Engineering baseline grid (iTwin dark mode grid)
+    const grid = new THREE.GridHelper(450, 45, 0x1e293b, 0x0f172a);
+    grid.position.y = -50.1;
+    this.scene.add(grid);
   }
 
   private onResize() {

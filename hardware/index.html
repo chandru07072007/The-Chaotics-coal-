@@ -3,23 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ESP32 NODE READING</title>
+  <title>MUNKANIPPU — DUAL HARDWARE MULTI-PORT DASHBOARD</title>
+  <!-- Chart.js for high-fidelity interactive real-time charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg-page: #ffffff;
-      --bg-card: #f8fafc;
-      --bg-inner: #ffffff;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-inner: #f1f5f9;
       --border: #e2e8f0;
-      --border-strong: #cbd5e1;
-      --text-main: #0f172a;
-      --text-sub: #475569;
-      --text-muted: #94a3b8;
-      --blue: #2563eb;
-      --cyan: #0284c7;
+      --border-accent: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --accent: #0284c7;
+      --accent-light: #e0f2fe;
+      --green: #16a34a;
+      --green-light: #dcfce7;
+      --yellow: #d97706;
+      --yellow-light: #fef3c7;
+      --orange: #ea580c;
+      --red: #dc2626;
+      --red-light: #fee2e2;
       --purple: #7c3aed;
-      --amber: #d97706;
-      --emerald: #059669;
-      --rose: #e11d48;
+      --font-mono: 'JetBrains Mono', Consolas, 'Courier New', monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
     * {
@@ -29,1415 +36,1437 @@
     }
 
     body {
-      font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-      background: var(--bg-page);
-      color: var(--text-main);
-      min-height: 100vh;
-      padding: 28px 36px 56px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
       line-height: 1.5;
+      padding: clamp(12px, 2vw, 24px);
+      overflow-x: hidden;
     }
 
-    .page-wrapper {
-      max-width: 1360px;
+    .container {
+      max-width: 1440px;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
-      gap: 28px;
+      gap: 16px;
     }
 
-    /* =====================================================
-       HEADER: ESP32 NODE READING + PORT BAR
-       ===================================================== */
-    .header-row {
+    /* Top Header */
+    .top-header {
       display: flex;
-      flex-wrap: wrap;
-      align-items: center;
       justify-content: space-between;
-      gap: 18px;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .main-heading {
-      font-family: Georgia, 'Times New Roman', serif;
-      font-size: 2.35rem;
-      font-weight: 500;
-      letter-spacing: 0.03em;
-      color: var(--text-main);
-      text-transform: uppercase;
-    }
-
-    .port-bar {
-      display: flex;
-      flex-wrap: wrap;
       align-items: center;
-      gap: 10px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      padding: 8px 14px;
-      border-radius: 10px;
-    }
-
-    .conn-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      padding: 4px 11px;
-      border-radius: 999px;
-      font-size: 0.74rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      background: #ffe4e6;
-      color: var(--rose);
-    }
-
-    .conn-pill.connected {
-      background: #d1fae5;
-      color: var(--emerald);
-    }
-
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-
-    .port-badge-box {
-      display: flex;
-      flex-direction: column;
-      padding: 0 10px;
-      border-left: 1px solid var(--border);
-      border-right: 1px solid var(--border);
-    }
-
-    .port-badge-label {
-      font-size: 0.64rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-    }
-
-    .port-badge-val {
-      font-size: 0.88rem;
-      font-weight: 700;
-      color: var(--text-main);
-      font-family: 'Consolas', monospace;
-    }
-
-    select, button {
-      font-family: inherit;
-      font-size: 0.82rem;
-      border-radius: 7px;
-      padding: 7px 11px;
-      outline: none;
-      transition: all 0.15s ease;
-    }
-
-    select {
-      background: var(--bg-inner);
-      color: var(--text-main);
-      border: 1px solid var(--border-strong);
-      min-width: 210px;
-      cursor: pointer;
-    }
-
-    .baud-select {
-      min-width: 105px;
-    }
-
-    .btn {
-      cursor: pointer;
-      font-weight: 600;
-      border: 1px solid var(--border-strong);
-      background: var(--bg-inner);
-      color: var(--text-sub);
-    }
-
-    .btn:hover {
-      background: #f1f5f9;
-      color: var(--text-main);
-    }
-
-    .btn-primary {
-      background: var(--text-main);
-      color: #ffffff;
-      border-color: var(--text-main);
-    }
-
-    .btn-primary:hover {
-      background: #1e293b;
-      color: #ffffff;
-    }
-
-    .btn-danger {
-      background: #fff1f2;
-      color: var(--rose);
-      border-color: #fecdd3;
-    }
-
-    /* =====================================================
-       TOP SECTIONS: CHART & MONITOR
-       ===================================================== */
-    .section-block {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .section-title {
-      font-size: 1.35rem;
-      font-weight: 600;
-      color: var(--text-main);
-    }
-
-    .box-surface {
-      background: var(--bg-card);
+      background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 18px 20px;
-    }
-
-    .legend-bar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .legend-list {
-      display: flex;
-      flex-wrap: wrap;
+      padding: 18px 26px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
       gap: 16px;
-      font-size: 0.8rem;
-      color: var(--text-sub);
+      flex-wrap: wrap;
     }
 
-    .legend-item {
+    .logo-area {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+    }
+
+    .logo-area h1 {
+      font-size: 1.6rem;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-weight: 800;
+    }
+
+    .logo-area {
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+
+    .logo-area span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+
+    .badge-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .status-pill {
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
       display: flex;
       align-items: center;
       gap: 6px;
-      font-weight: 500;
+      font-family: var(--font-mono);
+    }
+    .status-pill.mongo {
+      background: #ecfdf5;
+      color: var(--green);
+      border: 1px solid #a7f3d0;
+    }
+    .status-pill.hub {
+      background: var(--accent-light);
+      color: var(--accent);
+      border: 1px solid #bae6fd;
     }
 
-    .swatch {
-      width: 12px;
-      height: 3px;
-      border-radius: 2px;
-    }
-
-    .main-chart-wrap {
-      width: 100%;
-      height: 260px;
-      background: var(--bg-inner);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px;
-    }
-
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    .serial-console {
-      background: var(--bg-inner);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      height: 240px;
-      padding: 12px 14px;
-      font-family: 'Consolas', 'Courier New', monospace;
-      font-size: 0.82rem;
-      overflow-y: auto;
-      color: var(--text-main);
-      line-height: 1.48;
-    }
-
-    .serial-line {
-      white-space: pre-wrap;
-      word-break: break-word;
-      padding: 1px 0;
-    }
-
-    .serial-ts {
-      color: var(--text-muted);
-      margin-right: 10px;
-      user-select: none;
-    }
-
-    .serial-highlight-header {
-      color: var(--blue);
-      font-weight: 700;
-    }
-
-    .serial-highlight-warn {
-      color: var(--rose);
-      font-weight: 600;
-    }
-
-    /* =====================================================
-       BOTTOM SECTION: SIMPLE & CLEAN 2x2 SENSOR ANALYSIS CARDS
-       ===================================================== */
-    .analysis-grid {
+    /* Dual Port Selector Ribbon */
+    .ports-ribbon {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 24px;
+      gap: 18px;
     }
 
-    @media (max-width: 960px) {
-      .analysis-grid {
-        grid-template-columns: 1fr;
+    .port-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+
+    .port-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .port-name {
+      font-weight: 700;
+      font-size: 0.86rem;
+      letter-spacing: 0.05em;
+      color: var(--text);
+      font-family: var(--font-mono);
+    }
+
+    .port-pin-info {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      background: var(--card-inner);
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .port-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    select, button {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--border-accent);
+      padding: 9px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      outline: none;
+      font-family: var(--font-mono);
+    }
+
+    select:focus {
+      border-color: var(--accent);
+    }
+
+    select:focus-visible, button:focus-visible {
+      outline: 3px solid rgba(2, 132, 199, 0.25);
+      outline-offset: 2px;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    button.primary {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+    button.primary:hover {
+      background: #0369a1;
+    }
+    button.disconnect {
+      background: var(--red);
+      color: #ffffff;
+      border-color: var(--red);
+    }
+
+    /* High-Level Fused 4 KPI Cards */
+    .fused-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+    }
+    .kpi-card.c-yellow::before { background: var(--yellow); }
+    .kpi-card.c-blue::before { background: var(--accent); }
+    .kpi-card.c-green::before { background: var(--green); }
+    .kpi-card.c-red::before { background: var(--red); }
+
+    .kpi-title {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      font-family: var(--font-mono);
+    }
+
+    .kpi-value {
+      font-size: 1.9rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      margin: 4px 0;
+      color: var(--text);
+    }
+
+    .kpi-sub {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    .ai-panel {
+      background: #0f172a;
+      color: #e2e8f0;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 18px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+    }
+
+    .ai-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .ai-panel-title {
+      font-size: 0.94rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      font-family: var(--font-mono);
+    }
+
+    .ai-refresh-status {
+      color: #93c5fd;
+      font-size: 0.74rem;
+      font-family: var(--font-mono);
+    }
+
+    .ai-refresh-track {
+      height: 4px;
+      width: 100%;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #334155;
+    }
+
+    .ai-refresh-progress {
+      display: block;
+      height: 100%;
+      width: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #22d3ee, #3b82f6);
+      transform: scaleX(0);
+      transform-origin: left center;
+    }
+
+    .ai-refresh-progress.running {
+      animation: ai-refresh-countdown 20s linear forwards;
+    }
+
+    @keyframes ai-refresh-countdown {
+      from { transform: scaleX(1); }
+      to { transform: scaleX(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ai-refresh-progress.running {
+        animation: none;
+        transform: scaleX(1);
       }
     }
 
-    .analysis-group {
+    .ai-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .ai-summary-item {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px 12px;
+      min-width: 0;
+    }
+
+    .ai-summary-label {
+      display: block;
+      color: #94a3b8;
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .ai-summary-value {
+      display: block;
+      color: #f8fafc;
+      font-size: 1rem;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    .ai-command {
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px 14px;
+      overflow-x: auto;
+    }
+
+    .ai-command-label {
+      display: block;
+      color: #94a3b8;
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .ai-command code {
+      color: #67e8f9;
+      font: 0.78rem/1.5 var(--font-mono);
+      white-space: nowrap;
+    }
+
+    /* Dual Telemetry Split View */
+    .telemetry-split {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      min-width: 0;
+    }
+
+    .section-header {
+      font-size: 0.94rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      color: var(--text);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .gauge-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .gauge-box {
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .gauge-lbl {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      font-family: var(--font-mono);
+      letter-spacing: 0.04em;
+    }
+
+    .gauge-val {
+      font-size: 1.3rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--text);
+    }
+
+    /* Micro-Seismic Impact Banner */
+    .impact-banner {
+      background: var(--red-light);
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+      padding: 14px 16px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
 
-    .analysis-header {
+    .impact-header-row {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
     }
 
-    .analysis-title {
-      font-size: 0.96rem;
-      font-weight: 700;
-      color: var(--text-main);
+    .impact-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+      color: #7f1d1d;
+      margin-top: 4px;
+    }
+    .impact-table th, .impact-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid rgba(220, 38, 38, 0.15);
+      text-align: left;
     }
 
-    .status-pill {
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 3px 9px;
-      border-radius: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      background: #f1f5f9;
-      color: var(--text-sub);
+    /* Chart Containers */
+    .chart-box {
+      background: var(--card-inner);
       border: 1px solid var(--border);
-    }
-
-    .status-pill.ok {
-      background: #ecfdf5;
-      color: var(--emerald);
-      border-color: #a7f3d0;
-    }
-
-    .status-pill.warn {
-      background: #fffbeb;
-      color: var(--amber);
-      border-color: #fde68a;
-    }
-
-    .status-pill.crit {
-      background: #fff1f2;
-      color: var(--rose);
-      border-color: #fecdd3;
-    }
-
-    .analysis-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px;
+      border-radius: 10px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 8px;
     }
 
-    /* Minimal KPI Strip at top of each card */
-    .kpi-row {
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.76rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 140px;
+      width: 100%;
+    }
+
+    .sensor-chart-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 10px;
     }
 
-    .kpi-item {
-      background: var(--bg-inner);
+    .sensor-chart-box {
+      background: var(--card-inner);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 10px 12px;
+      min-width: 0;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .sensor-chart-box:hover {
+      border-color: var(--border-accent);
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+    }
+
+    .sensor-chart-wrapper {
+      height: 120px;
+      position: relative;
+    }
+
+    /* Stream Console */
+    .console-box {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      height: 110px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: #38bdf8;
+      line-height: 1.45;
+    }
+    .console-line {
+      display: flex;
+      gap: 8px;
+    }
+    .console-time {
+      color: #94a3b8;
+      min-width: 65px;
+    }
+
+    /* MongoDB Persistence Panel */
+    .mongo-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     }
 
-    .kpi-label {
-      font-size: 0.71rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
+    .mongo-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    .mongo-title {
+      font-size: 1rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--text);
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 10px;
     }
 
-    .kpi-val {
-      font-size: 1.45rem;
-      font-weight: 700;
-      color: var(--text-main);
-      font-family: 'Consolas', monospace;
+    .mongo-stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .mongo-stat-card {
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
       display: flex;
-      align-items: baseline;
+      flex-direction: column;
       gap: 4px;
     }
 
-    .kpi-unit {
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--text-sub);
+    .mongo-stat-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
     }
 
-    .kpi-sub {
-      font-size: 0.74rem;
-      color: var(--text-sub);
-      font-family: 'Consolas', monospace;
+    .mongo-stat-val {
+      font-size: 1.4rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--accent);
     }
 
-    /* Individual Sensor Analysis Chart Canvas */
-    .mini-chart-box {
-      background: var(--bg-inner);
+    .mongo-table-wrap {
+      max-height: 240px;
+      overflow-y: auto;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 12px 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
     }
 
-    .mini-chart-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 0.74rem;
-      color: var(--text-sub);
-    }
-
-    .mini-chart-canvas-wrap {
+    .mongo-table {
       width: 100%;
-      height: 135px;
-      position: relative;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      text-align: left;
+    }
+
+    .mongo-table th {
+      background: var(--card-inner);
+      color: var(--text-muted);
+      padding: 10px 12px;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mongo-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .mongo-table tr:hover {
+      background: #f8fafc;
+    }
+
+    @media (max-width: 1024px) {
+      .ports-ribbon, .telemetry-split, .fused-kpis, .mongo-stats-row {
+        grid-template-columns: 1fr;
+      }
+      .ai-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .gauge-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .top-header {
+        padding: 16px;
+      }
+      .logo-area h1 {
+        font-size: 1.25rem;
+      }
+      .badge-group {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .top-header,
+      .port-box,
+      .section-card,
+      .mongo-panel {
+        padding: 14px;
+      }
+
+      .logo-area {
+        align-items: flex-start;
+        gap: 4px 10px;
+      }
+
+      .logo-area span {
+        width: 100%;
+      }
+
+      .port-controls {
+        align-items: stretch;
+        flex-wrap: wrap;
+      }
+
+      .port-controls select,
+      .port-controls button {
+        flex: 1 1 100%;
+        width: 100% !important;
+      }
+
+      .gauge-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .ai-summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sensor-chart-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .mongo-table-wrap {
+        overflow-x: auto;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="page-wrapper">
-
-    <!-- =====================================================
-         HEADER: ESP32 NODE READING & PORT SELECTOR
-         ===================================================== -->
-    <header class="header-row">
-      <h1 class="main-heading">ESP32 NODE READING</h1>
-
-      <div class="port-bar">
-        <div id="connPill" class="conn-pill">
-          <span class="dot"></span>
-          <span id="connStateText">DISCONNECTED</span>
+  <div class="container">
+    
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="logo-area">
+        <h1>MUNKANIPPU DUAL-NODE</h1>
+        <span>MULTI-PORT HARDWARE TELEMETRY CONSOLE</span>
+      </div>
+      <div class="badge-group">
+        <div class="status-pill mongo" id="mongo-pill">
+          ● MONGO DB: CONNECTED & WRITING (munkanippu_db)
         </div>
-
-        <div class="port-badge-box">
-          <span class="port-badge-label">Cable Port</span>
-          <span id="activePortDisplay" class="port-badge-val">Detecting...</span>
+        <div class="status-pill hub" id="hub-status">
+          ● DUAL HUB ENGINE ONLINE
         </div>
-
-        <select id="portSelect" title="Select Serial Port">
-          <option value="">Scanning COM ports...</option>
-        </select>
-
-        <select id="baudSelect" class="baud-select" title="Baud Rate">
-          <option value="115200" selected>115200 baud</option>
-          <option value="9600">9600 baud</option>
-          <option value="57600">57600 baud</option>
-        </select>
-
-        <button id="connectBtn" class="btn btn-primary" onclick="handleConnectClick()">
-          Connect Port
-        </button>
-        <button class="btn" onclick="refreshPorts()">
-          Refresh
-        </button>
-        <button class="btn" onclick="connectWebSerial()">
-          USB WebSerial
-        </button>
       </div>
     </header>
 
-    <!-- =====================================================
-         SECTION 1: MASTER CHART
-         ===================================================== -->
-    <section class="section-block">
-      <div class="section-header">
-        <h2 class="section-title">CHART</h2>
-        <div style="display:flex; align-items:center; gap:12px; font-size:0.8rem; color:var(--text-sub);">
-          <span>
-            Port: <strong id="ribbonPortName" style="color:var(--text-main);">--</strong>
-            (<span id="ribbonChipDesc">Scanning...</span>) &bull;
-            Packets: <strong id="ribbonPackets" style="color:var(--text-main);">0</strong> &bull;
-            Updated: <strong id="ribbonLastTime" style="color:var(--text-main);">Waiting...</strong>
+    <!-- Dual Hardware Ports Selector Ribbon -->
+    <div class="ports-ribbon">
+      <!-- Port 1: HX711 + ADXL345 SPI + MPU6500 I2C -->
+      <div class="port-box">
+        <div class="port-title-row">
+          <span class="port-name">PORT 1 &bull; NODE 1 (HX711 LOAD + ADXL345 SPI + MPU6500)</span>
+          <span style="font-size:0.75rem; font-weight:700; font-family:var(--font-mono); color:var(--yellow);" id="p1-state">STREAMING (SIM)</span>
+        </div>
+        <div class="port-pin-info">
+          PINS: HX711(DT:16, SCK:4) &bull; ADXL345 SPI(CS:5, SCK:18, MISO:19, MOSI:23) &bull; MPU6500(SDA:21, SCL:22, 0x68)
+        </div>
+        <div class="port-controls">
+          <select id="p1-select" style="flex:1;">
+            <option value="">Scanning COM Ports...</option>
+          </select>
+          <select id="p1-baud" style="width:130px;">
+            <option value="115200">115200 baud</option>
+            <option value="9600">9600 baud</option>
+          </select>
+          <button class="primary" id="p1-btn" onclick="toggleConnect(1)">Connect Port 1</button>
+        </div>
+      </div>
+
+      <!-- Port 2: Mountain Trekker Safety Watch (MPU6050 + Dallas + Soil) -->
+      <div class="port-box">
+        <div class="port-title-row">
+          <span class="port-name">PORT 2 &bull; NODE 2 (MPU6050 + DALLAS DS18B20 + SOIL)</span>
+          <span style="font-size:0.75rem; font-weight:700; font-family:var(--font-mono); color:var(--yellow);" id="p2-state">STREAMING (SIM)</span>
+        </div>
+        <div class="port-pin-info">
+          PINS: MPU6050 I2C(SDA:21, SCL:22, 0x68) &bull; DALLAS DS18B20(Pin 2 OneWire) &bull; SOIL MOISTURE(Pin A0)
+        </div>
+        <div class="port-controls">
+          <select id="p2-select" style="flex:1;">
+            <option value="">Scanning COM Ports...</option>
+          </select>
+          <select id="p2-baud" style="width:130px;">
+            <option value="115200">115200 baud</option>
+            <option value="9600">9600 baud</option>
+          </select>
+          <button class="primary" id="p2-btn" onclick="toggleConnect(2)">Connect Port 2</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Consolidated 4 KPI Cards -->
+    <div class="fused-kpis">
+      <div class="kpi-card c-yellow">
+        <span class="kpi-title">ESTIMATED SUBSIDENCE DISPLACEMENT</span>
+        <div class="kpi-value" id="kpi-disp" style="color:var(--yellow);">42.50 mm</div>
+        <span class="kpi-sub">Fused strain offset + MPU vector tilt</span>
+      </div>
+      <div class="kpi-card c-blue">
+        <span class="kpi-title">GROUND STRATA TEMPERATURE</span>
+        <div class="kpi-value" id="kpi-temp" style="color:var(--accent);">24.62 °C</div>
+        <span class="kpi-sub">Dallas DS18B20 1-Wire borehole probe</span>
+      </div>
+      <div class="kpi-card c-green">
+        <span class="kpi-title">CAPACITIVE SOIL MOISTURE</span>
+        <div class="kpi-value" id="kpi-moisture" style="color:var(--green);">56.5 %</div>
+        <span class="kpi-sub">Pore-water pressure hydrostatic proxy</span>
+      </div>
+      <div class="kpi-card c-red">
+        <span class="kpi-title">TIME-TO-CRITICAL (TTC)</span>
+        <div class="kpi-value" id="kpi-ttc" style="color:var(--red);">4.33 hrs</div>
+        <span class="kpi-sub">DGMS Risk: <strong id="kpi-dgms" style="color:var(--yellow);">WARNING</strong></span>
+      </div>
+    </div>
+
+    <!-- Auto-generated AI command and latest prediction -->
+    <section class="ai-panel" aria-labelledby="ai-panel-title">
+      <div class="ai-panel-header">
+        <h2 class="ai-panel-title" id="ai-panel-title">LATEST AI SENSOR ANALYSIS</h2>
+        <span class="ai-refresh-status" id="ai-refresh-status" aria-live="polite">
+          Refreshing every 20 seconds
+        </span>
+      </div>
+      <div class="ai-refresh-track" aria-hidden="true">
+        <span class="ai-refresh-progress" id="ai-refresh-progress"></span>
+      </div>
+      <div class="ai-summary-grid">
+        <div class="ai-summary-item">
+          <span class="ai-summary-label">NODE</span>
+          <span class="ai-summary-value" id="ai-node">45</span>
+        </div>
+        <div class="ai-summary-item">
+          <span class="ai-summary-label">DISPLACEMENT</span>
+          <span class="ai-summary-value" id="ai-disp">2.50 mm</span>
+        </div>
+        <div class="ai-summary-item">
+          <span class="ai-summary-label">PREDICTED 24H</span>
+          <span class="ai-summary-value" id="ai-predicted">2.98 mm</span>
+        </div>
+        <div class="ai-summary-item">
+          <span class="ai-summary-label">RISK</span>
+          <span class="ai-summary-value" id="ai-risk">SAFE</span>
+        </div>
+        <div class="ai-summary-item">
+          <span class="ai-summary-label">TTC</span>
+          <span class="ai-summary-value" id="ai-ttc">∞</span>
+        </div>
+      </div>
+      <div class="ai-command">
+        <span class="ai-command-label">AUTO-GENERATED COMMAND</span>
+        <code id="ai-command">python main.py --node-id 45 --disp 2.5 --tilt 0.0 --vib 0.10 --temp 25.0 --vel 0.02</code>
+      </div>
+    </section>
+
+    <!-- Dual Hardware Telemetry Detailed Panels -->
+    <div class="telemetry-split">
+      <!-- Left: Node 1 (HX711 Load Cell + ADXL345 SPI + MPU6500 I2C) -->
+      <div class="section-card">
+        <div class="section-header">
+          <span>NODE 1: IMPACT & LOAD TRANSDUCERS</span>
+          <span style="font-size:0.75rem; color:var(--text-muted);" id="n1-packets">0 Packets</span>
+        </div>
+
+        <!-- Micro-Seismic Shock Detector -->
+        <div class="impact-banner">
+          <div class="impact-header-row">
+            <strong>MICRO-SEISMIC SHOCK DETECTOR (DUAL-IMU)</strong>
+            <span id="n1-gap-badge" style="background:var(--red); color:#fff; padding:2px 8px; border-radius:4px; font-weight:700;">GAP: 120 us</span>
+          </div>
+          <div id="n1-impact-txt" style="font-size:0.78rem;">
+            Listening for high-g rupture waves (ADXL345 SPI & MPU6500 I2C)...
+          </div>
+          <table class="impact-table">
+            <thead>
+              <tr>
+                <th>Event Time</th>
+                <th>First IMU</th>
+                <th>Propagation Gap</th>
+                <th>ADXL Peak</th>
+                <th>MPU Peak</th>
+              </tr>
+            </thead>
+            <tbody id="n1-impact-tbody">
+              <tr>
+                <td>22:08:26</td>
+                <td>MPU6500</td>
+                <td>184 μs</td>
+                <td>0.83 g</td>
+                <td>0.90 g</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Gauges Grid -->
+        <div class="gauge-grid">
+          <div class="gauge-box">
+            <span class="gauge-lbl">HX711 ZERO OFFSET</span>
+            <span class="gauge-val" id="n1-offset">8,344,000</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">HX711 RAW READING</span>
+            <span class="gauge-val" id="n1-raw">8,345,420</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">LOAD FORCE Δ</span>
+            <span class="gauge-val" id="n1-change" style="color:var(--red);">+1,420</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">ADXL345 MAG (SPI)</span>
+            <span class="gauge-val" id="n1-adxl">1.002 g</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">ADXL345 PEAK (G)</span>
+            <span class="gauge-val" id="n1-adxl-peak" style="color:var(--orange);">0.045 g</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">MPU6500 MAG (I2C)</span>
+            <span class="gauge-val" id="n1-mpu">0.998 g</span>
+          </div>
+        </div>
+
+        <!-- Individual sensor charts -->
+        <div class="sensor-chart-grid">
+          <div class="sensor-chart-box">
+            <div class="chart-header"><span>HX711 LOAD CHANGE</span><span style="color:var(--red);">Δ</span></div>
+            <div class="sensor-chart-wrapper"><canvas id="n1-hx711-chart" role="img" aria-label="Live HX711 load change chart"></canvas></div>
+          </div>
+          <div class="sensor-chart-box">
+            <div class="chart-header"><span>ADXL345 VIBRATION</span><span style="color:var(--accent);">g</span></div>
+            <div class="sensor-chart-wrapper"><canvas id="n1-adxl-chart" role="img" aria-label="Live ADXL345 vibration chart"></canvas></div>
+          </div>
+          <div class="sensor-chart-box">
+            <div class="chart-header"><span>MPU6500 VIBRATION</span><span style="color:var(--orange);">g</span></div>
+            <div class="sensor-chart-wrapper"><canvas id="n1-mpu-chart" role="img" aria-label="Live MPU6500 vibration chart"></canvas></div>
+          </div>
+        </div>
+
+        <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700; font-family:var(--font-mono);">
+          NODE 1 RAW SERIAL CSV STREAM:
+        </div>
+        <div class="console-box" id="n1-console">Waiting for Node 1 stream...</div>
+      </div>
+
+      <!-- Right: Node 2 (Mountain Trekker Safety Watch: MPU6050 + Dallas + Soil) -->
+      <div class="section-card">
+        <div class="section-header">
+          <span>NODE 2: MOUNTAIN TREKKER SAFETY WATCH</span>
+          <span style="font-size:0.75rem; color:var(--text-muted);" id="n2-packets">0 Packets</span>
+        </div>
+
+        <!-- Gauges Grid -->
+        <div class="gauge-grid">
+          <div class="gauge-box">
+            <span class="gauge-lbl">ACCEL X (PITCH)</span>
+            <span class="gauge-val" id="n2-ax">0.020 g</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">ACCEL Y (ROLL)</span>
+            <span class="gauge-val" id="n2-ay">-0.010 g</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">ACCEL Z (VERTICAL)</span>
+            <span class="gauge-val" id="n2-az">0.980 g</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">GYRO X RATE</span>
+            <span class="gauge-val" id="n2-gx">0.12 °/s</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">GYRO Y RATE</span>
+            <span class="gauge-val" id="n2-gy">-0.08 °/s</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">GYRO Z RATE</span>
+            <span class="gauge-val" id="n2-gz">0.05 °/s</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">DALLAS DS18B20 TEMP</span>
+            <span class="gauge-val" id="n2-temp" style="color:var(--accent);">24.62 °C</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">SOIL MOISTURE RAW</span>
+            <span class="gauge-val" id="n2-soil">1,780</span>
+          </div>
+          <div class="gauge-box">
+            <span class="gauge-lbl">SOIL MOISTURE %</span>
+            <span class="gauge-val" id="n2-moisture-pct" style="color:var(--green);">56.5 %</span>
+          </div>
+        </div>
+
+        <!-- Individual sensor charts -->
+        <div class="sensor-chart-grid">
+          <div class="sensor-chart-box">
+            <div class="chart-header"><span>ACCEL X (PITCH)</span><span style="color:var(--green);">g</span></div>
+            <div class="sensor-chart-wrapper"><canvas id="n2-accel-x-chart" role="img" aria-label="Live acceleration X chart"></canvas></div>
+          </div>
+          <div class="sensor-chart-box">
+            <div class="chart-header"><span>ACCEL Y (ROLL)</span><span style="color:var(--green);">g</span></div>
+            <div class="sensor-chart-wrapper"><canvas id="n2-accel-y-chart" role="img" aria-label="Live acceleration Y chart"></canvas></div>
+          </div>
+          <div class="sensor-chart-box">
+            <div class="chart-header"><span>ACCEL Z (VERTICAL)</span><span style="color:var(--green);">g</span></div>
+            <div class="sensor-chart-wrapper"><canvas id="n2-accel-z-chart" role="img" aria-label="Live acceleration Z chart"></canvas></div>
+          </div>
+          <div class="sensor-chart-box">
+            <div class="chart-header"><span>GYRO X RATE</span><span style="color:var(--purple);">°/s</span></div>
+            <div class="sensor-chart-wrapper"><canvas id="n2-gyro-x-chart" role="img" aria-label="Live gyroscope X chart"></canvas></div>
+          </div>
+          <div class="sensor-chart-box">
+            <div class="chart-header"><span>GYRO Y RATE</span><span style="color:var(--purple);">°/s</span></div>
+            <div class="sensor-chart-wrapper"><canvas id="n2-gyro-y-chart" role="img" aria-label="Live gyroscope Y chart"></canvas></div>
+          </div>
+          <div class="sensor-chart-box">
+            <div class="chart-header"><span>GYRO Z RATE</span><span style="color:var(--purple);">°/s</span></div>
+            <div class="sensor-chart-wrapper"><canvas id="n2-gyro-z-chart" role="img" aria-label="Live gyroscope Z chart"></canvas></div>
+          </div>
+          <div class="sensor-chart-box">
+            <div class="chart-header"><span>DS18B20 TEMPERATURE</span><span style="color:var(--accent);">°C</span></div>
+            <div class="sensor-chart-wrapper"><canvas id="n2-temp-chart" role="img" aria-label="Live Dallas temperature chart"></canvas></div>
+          </div>
+          <div class="sensor-chart-box">
+            <div class="chart-header"><span>SOIL MOISTURE RAW</span><span style="color:var(--yellow);">ADC</span></div>
+            <div class="sensor-chart-wrapper"><canvas id="n2-soil-raw-chart" role="img" aria-label="Live raw soil moisture chart"></canvas></div>
+          </div>
+          <div class="sensor-chart-box">
+            <div class="chart-header"><span>SOIL MOISTURE</span><span style="color:var(--green);">%</span></div>
+            <div class="sensor-chart-wrapper"><canvas id="n2-moisture-chart" role="img" aria-label="Live soil moisture percentage chart"></canvas></div>
+          </div>
+        </div>
+
+        <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700; font-family:var(--font-mono);">
+          NODE 2 RAW SERIAL TELEMETRY STREAM:
+        </div>
+        <div class="console-box" id="n2-console">Waiting for Node 2 stream...</div>
+      </div>
+    </div>
+
+    <!-- MongoDB Live Storage & Document Inspector Section -->
+    <div class="mongo-panel">
+      <div class="mongo-header">
+        <div class="mongo-title">
+          <span>MONGODB PERSISTENCE & TELEMETRY ARCHIVE</span>
+          <span style="font-size:0.75rem; font-weight:600; color:var(--green); background:var(--green-light); padding:3px 10px; border-radius:12px;">
+            mongodb://localhost:27017/munkanippu_db
           </span>
-          <button class="btn" onclick="exportCSV()" style="padding:4px 10px; font-size:0.76rem;">
-            Export CSV
-          </button>
+        </div>
+        <button class="primary" style="padding:6px 12px; font-size:0.78rem;" onclick="fetchMongoRecords()">
+          Refresh MongoDB Records
+        </button>
+      </div>
+
+      <div class="mongo-stats-row">
+        <div class="mongo-stat-card">
+          <span class="mongo-stat-title">STORED TELEMETRY FRAMES</span>
+          <span class="mongo-stat-val" id="m-telemetry-count">0</span>
+        </div>
+        <div class="mongo-stat-card">
+          <span class="mongo-stat-title">AI/ML PREDICTIONS ARCHIVED</span>
+          <span class="mongo-stat-val" id="m-predictions-count">0</span>
+        </div>
+        <div class="mongo-stat-card">
+          <span class="mongo-stat-title">HEATMAP NODES SYNCHRONIZED</span>
+          <span class="mongo-stat-val" id="m-nodes-count">100</span>
+        </div>
+        <div class="mongo-stat-card">
+          <span class="mongo-stat-title">SAFETY ALERTS LOGGED</span>
+          <span class="mongo-stat-val" id="m-alerts-count">0</span>
         </div>
       </div>
 
-      <div class="box-surface">
-        <div class="legend-bar">
-          <div class="legend-list">
-            <div class="legend-item"><span class="swatch" style="background:var(--cyan);"></span>Angle X (%)</div>
-            <div class="legend-item"><span class="swatch" style="background:var(--purple);"></span>Angle Y (%)</div>
-            <div class="legend-item"><span class="swatch" style="background:var(--amber);"></span>Vibration (%)</div>
-            <div class="legend-item"><span class="swatch" style="background:var(--emerald);"></span>Temperature (&deg;C)</div>
-            <div class="legend-item"><span class="swatch" style="background:var(--blue);"></span>Soil Moisture (%)</div>
-            <div class="legend-item"><span class="swatch" style="background:var(--rose);"></span>FSR Force (%)</div>
-          </div>
-          <span id="ribbonBaud" style="font-size:0.75rem; font-family:monospace; color:var(--text-muted);">115200 bps</span>
-        </div>
-
-        <div class="main-chart-wrap">
-          <canvas id="telemetryChart"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <!-- =====================================================
-         SECTION 2: SERIAL MONITOR
-         ===================================================== -->
-    <section class="section-block">
-      <div class="section-header">
-        <h2 class="section-title">Monitor</h2>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span id="serialMonitorSubtitle" style="font-size:0.78rem; color:var(--text-sub); margin-right:6px;">
-            Streaming live serial output @ 115200 baud
-          </span>
-          <button id="pauseSerialBtn" class="btn" onclick="toggleSerialPause()" style="padding:4px 10px; font-size:0.76rem;">
-            Pause
-          </button>
-          <button class="btn" onclick="clearSerialConsole()" style="padding:4px 10px; font-size:0.76rem;">
-            Clear
-          </button>
-        </div>
+      <div style="font-size:0.78rem; font-weight:700; font-family:var(--font-mono); color:var(--text-muted);">
+        RECENT TELEMETRY DOCUMENTS STORED IN MONGODB (Collection: hardware_telemetry):
       </div>
 
-      <div class="box-surface" style="padding:14px;">
-        <div id="serialConsole" class="serial-console"></div>
+      <div class="mongo-table-wrap">
+        <table class="mongo-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Node 1 Load Force (Δ)</th>
+              <th>ADXL345 SPI (g)</th>
+              <th>MPU6500 (g)</th>
+              <th>Node 2 Tilt</th>
+              <th>Strata Temp</th>
+              <th>Soil Moisture</th>
+              <th>Fused Subsidence</th>
+              <th>DGMS Status</th>
+            </tr>
+          </thead>
+          <tbody id="mongo-records-tbody">
+            <tr>
+              <td colspan="9" style="text-align:center; color:var(--text-muted);">Fetching MongoDB documents...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </section>
-
-    <!-- =====================================================
-         SECTION 3: SIMPLE & CLEAN SENSOR ANALYSIS CARDS (2x2)
-         ===================================================== -->
-    <section class="analysis-grid">
-
-      <!-- 1. MPU6050 Dual-Axis Inclinometer (Angle X & Angle Y) -->
-      <div class="analysis-group">
-        <div class="analysis-header">
-          <span class="analysis-title">MPU6050 Dual-Axis Inclinometer (Angle X &amp; Angle Y)</span>
-        </div>
-
-        <div class="analysis-card">
-          <div class="kpi-row">
-            <div class="kpi-item">
-              <div class="kpi-label">
-                <span>Angle X</span>
-                <span class="swatch" style="background:var(--cyan);"></span>
-              </div>
-              <div class="kpi-val"><span id="angleXVal">0.00</span><span class="kpi-unit">deg</span></div>
-              <div class="kpi-sub">Tilt: <strong id="pctXVal">0.0%</strong></div>
-            </div>
-
-            <div class="kpi-item">
-              <div class="kpi-label">
-                <span>Angle Y</span>
-                <span class="swatch" style="background:var(--purple);"></span>
-              </div>
-              <div class="kpi-val"><span id="angleYVal">0.00</span><span class="kpi-unit">deg</span></div>
-              <div class="kpi-sub">Tilt: <strong id="pctYVal">0.0%</strong></div>
-            </div>
-          </div>
-
-          <div class="mini-chart-box">
-            <div class="mini-chart-top">
-              <span>Tilt Angle Analysis (X% vs Y%)</span>
-              <span id="mpuSummaryText" style="font-family:monospace;">0&deg; = 0% | 45&deg; = 100%</span>
-            </div>
-            <div class="mini-chart-canvas-wrap">
-              <canvas id="chartTilt"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2. MPU6050 Seismic & Vibration Monitor -->
-      <div class="analysis-group">
-        <div class="analysis-header">
-          <span class="analysis-title">MPU6050 Seismic &amp; Vibration Monitor</span>
-        </div>
-
-        <div class="analysis-card">
-          <div class="kpi-row">
-            <div class="kpi-item">
-              <div class="kpi-label">
-                <span>Vibration</span>
-                <span class="swatch" style="background:var(--amber);"></span>
-              </div>
-              <div class="kpi-val"><span id="vibrationVal">0.00</span><span class="kpi-unit">m/s&sup2;</span></div>
-              <div class="kpi-sub">Peak: <strong id="peakVibVal">0.00 m/s&sup2;</strong></div>
-            </div>
-
-            <div class="kpi-item">
-              <div class="kpi-label">
-                <span>Vibration Level</span>
-                <span>0&ndash;100%</span>
-              </div>
-              <div class="kpi-val"><span id="vibrationLevelVal">0.0</span><span class="kpi-unit">%</span></div>
-              <div class="kpi-sub">Scale: 0&ndash;10 m/s&sup2;</div>
-            </div>
-          </div>
-
-          <div class="mini-chart-box">
-            <div class="mini-chart-top">
-              <span>Vibration Spectrum &amp; Intensity Analysis (%)</span>
-              <span id="vibBarLabel" style="font-family:monospace;">0.0 %</span>
-            </div>
-            <div class="mini-chart-canvas-wrap">
-              <canvas id="chartVib"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 3. DHT11 Temperature & Humidity Monitor -->
-      <div class="analysis-group">
-        <div class="analysis-header">
-          <span class="analysis-title">DHT11 Temperature &amp; Humidity Monitor</span>
-        </div>
-
-        <div class="analysis-card">
-          <div class="kpi-row">
-            <div class="kpi-item">
-              <div class="kpi-label">
-                <span>Temperature</span>
-                <span class="swatch" style="background:var(--emerald);"></span>
-              </div>
-              <div class="kpi-val"><span id="tempVal">--</span><span class="kpi-unit">&deg;C</span></div>
-              <div class="kpi-sub">GPIO 4 Digital</div>
-            </div>
-
-            <div class="kpi-item">
-              <div class="kpi-label">
-                <span>Humidity</span>
-                <span class="swatch" style="background:var(--cyan);"></span>
-              </div>
-              <div class="kpi-val"><span id="humVal">--</span><span class="kpi-unit">%</span></div>
-              <div class="kpi-sub" id="heatIndexText">Waiting for sample...</div>
-            </div>
-          </div>
-
-          <div class="mini-chart-box">
-            <div class="mini-chart-top">
-              <span>Temperature (&deg;C) &amp; Humidity (%) Analysis</span>
-              <span style="font-family:monospace;">0 &ndash; 100 Scale</span>
-            </div>
-            <div class="mini-chart-canvas-wrap">
-              <canvas id="chartDht"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4. Soil Moisture (GPIO 34) & FSR Force (GPIO 35) -->
-      <div class="analysis-group">
-        <div class="analysis-header">
-          <span class="analysis-title">Soil Moisture (GPIO 34) &amp; FSR Force (GPIO 35)</span>
-        </div>
-
-        <div class="analysis-card">
-          <div class="kpi-row">
-            <div class="kpi-item">
-              <div class="kpi-label">
-                <span>Soil Moisture</span>
-                <span class="swatch" style="background:var(--blue);"></span>
-              </div>
-              <div class="kpi-val"><span id="moistureVal">0</span><span class="kpi-unit">%</span></div>
-              <div class="kpi-sub">Raw ADC: <strong id="soilRawVal">4095</strong></div>
-            </div>
-
-            <div class="kpi-item">
-              <div class="kpi-label">
-                <span>FSR Force Level</span>
-                <span class="swatch" style="background:var(--rose);"></span>
-              </div>
-              <div class="kpi-val"><span id="forceLevelVal">0</span><span class="kpi-unit">%</span></div>
-              <div class="kpi-sub">Raw ADC: <strong id="fsrRawVal">0</strong> (Peak: <strong id="peakForceVal">0%</strong>)</div>
-            </div>
-          </div>
-
-          <div class="mini-chart-box">
-            <div class="mini-chart-top">
-              <span>Soil Moisture (%) &amp; FSR Force (%) Analysis</span>
-              <span style="font-family:monospace;">12-Bit ADC (0&ndash;4095)</span>
-            </div>
-            <div class="mini-chart-canvas-wrap">
-              <canvas id="chartAdc"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </section>
-
-    <!-- =====================================================
-         SECTION 4: 20-SEC END FORMAL COMMAND GENERATOR
-         ===================================================== -->
-    <section class="section-block">
-      <div class="section-header">
-        <h2 class="section-title">Formal Command (Generated at 20 Sec End)</h2>
-        <div style="display:flex; align-items:center; gap:10px; font-size:0.82rem; color:var(--text-sub);">
-          <label for="cmdNodeId">Node ID:</label>
-          <input id="cmdNodeId" type="number" value="45" min="1" max="100"
-            style="width:68px; padding:5px 8px; border:1px solid var(--border-strong); border-radius:6px; font-family:monospace; font-weight:700;" />
-          <span id="cmdTimerStatus" style="font-family:monospace; font-weight:600; color:var(--blue);">
-            Collecting: 0s / 20s
-          </span>
-          <button class="btn" onclick="copyFormalCommand()" id="copyCmdBtn" style="padding:5px 12px;">
-            Copy Command
-          </button>
-          <button class="btn btn-primary" onclick="restart20SecTimer()" style="padding:5px 12px;">
-            Restart 20s
-          </button>
-        </div>
-      </div>
-
-      <div class="box-surface" style="display:flex; flex-direction:column; gap:12px;">
-        <!-- 20-Second Progress Bar -->
-        <div style="width:100%; height:6px; background:#e2e8f0; border-radius:999px; overflow:hidden;">
-          <div id="cmdProgressBar" style="width:0%; height:100%; background:var(--blue); transition:width 0.3s linear;"></div>
-        </div>
-
-        <!-- Generated Formal Command Box -->
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--bg-inner); border:1px solid var(--border-strong); border-radius:8px; padding:14px 16px;">
-          <code id="formalCommandOutput" style="font-family:'Consolas', 'Courier New', monospace; font-size:0.96rem; font-weight:700; color:var(--text-main); user-select:all; word-break:break-all;">
-            Waiting for 20 sec sensor window to complete...
-          </code>
-        </div>
-      </div>
-    </section>
+    </div>
 
   </div>
 
   <script>
-    // =========================================================================
-    // STATE MANAGEMENT
-    // =========================================================================
-    let isConnected = false;
-    let serialPaused = false;
-    let peakVibration = 0;
-    let peakForce = 0;
-    let historyData = [];
-    const MAX_HISTORY = 40;
-
-    // 20-Second Formal Command Window State
-    let windowSamples = [];
-    let cmdSecondsElapsed = 0;
-    let cmdGenerated = false;
-    let cmdIntervalId = null;
-
-    // Web Serial fallback state
-    let webSerialPort = null;
-    let webSerialReader = null;
-    let webSerialActive = false;
-    let localSection = null;
-    let localWorking = {
-      angleX: 0, percentageX: 0, angleY: 0, percentageY: 0,
-      vibration: 0, vibrationLevel: 0, temperature: null, humidity: null,
-      dhtOk: true, soilRaw: 4095, moisture: 0, fsrRaw: 0, forceLevel: 0
-    };
-    let localPacketCount = 0;
-
-    async function initDashboard() {
-      await refreshPorts();
-      await fetchInitialRawLines();
-      connectSSE();
-      renderAllCharts();
-      start20SecTimer();
-      window.addEventListener('resize', renderAllCharts);
-    }
-
-    function start20SecTimer() {
-      if (cmdIntervalId) clearInterval(cmdIntervalId);
-      cmdSecondsElapsed = 0;
-      cmdGenerated = false;
-      windowSamples = [];
-      updateTimerUI();
-
-      cmdIntervalId = setInterval(() => {
-        if (cmdGenerated) return;
-        cmdSecondsElapsed++;
-        updateTimerUI();
-
-        if (cmdSecondsElapsed >= 20) {
-          cmdGenerated = true;
-          generateFormalCommandAt20Sec();
-        }
-      }, 1000);
-    }
-
-    function restart20SecTimer() {
-      document.getElementById('formalCommandOutput').textContent =
-        'Collecting 20 sec sensor readings...';
-      document.getElementById('cmdProgressBar').style.background = 'var(--blue)';
-      start20SecTimer();
-    }
-
-    function updateTimerUI() {
-      const pct = Math.min(100, (cmdSecondsElapsed / 20) * 100);
-      document.getElementById('cmdProgressBar').style.width = `${pct}%`;
-      const statusEl = document.getElementById('cmdTimerStatus');
-      if (cmdSecondsElapsed < 20) {
-        statusEl.textContent = `Collecting: ${cmdSecondsElapsed}s / 20s`;
-        statusEl.style.color = 'var(--blue)';
-      } else {
-        statusEl.textContent = `20s Complete (Command Ready)`;
-        statusEl.style.color = 'var(--emerald)';
-        document.getElementById('cmdProgressBar').style.background = 'var(--emerald)';
-      }
-    }
-
-    function generateFormalCommandAt20Sec() {
-      const nodeId = parseInt(document.getElementById('cmdNodeId').value, 10) || 45;
-      const samples = windowSamples.length > 0 ? windowSamples : historyData;
-
-      let disp = 42.5;
-      let tilt = 4.2;
-      let vib = 9.85;
-      let temp = 31.0;
-      let vel = 1.8;
-
-      if (samples.length > 0) {
-        const last = samples[samples.length - 1];
-
-        // 1. Tilt (deg): average absolute Angle X over the 20s window
-        const avgAbsTiltX = samples.reduce((acc, s) => acc + Math.abs(Number(s.angleX || 0)), 0) / samples.length;
-        tilt = Number(avgAbsTiltX.toFixed(1));
-
-        // 2. Vibration (m/s^2): max/RMS vibration over the 20s window
-        const maxVib = Math.max(...samples.map(s => Number(s.vibration || 0)));
-        vib = Number((maxVib > 0 ? maxVib : Number(last.vibration || 0)).toFixed(2));
-
-        // 3. Temperature (°C): latest valid DHT11 temperature, or 31.0 fallback
-        const validTemps = samples.map(s => s.temperature).filter(t => t !== null && t !== undefined && t > 0);
-        temp = validTemps.length > 0
-          ? Number((validTemps.reduce((a, b) => a + b, 0) / validTemps.length).toFixed(1))
-          : 31.0;
-
-        // 4. Displacement (mm): derived from Tilt % & FSR Force % (scaled 0-50mm)
-        const avgTiltPct = samples.reduce((acc, s) => acc + Number(s.percentageX || 0), 0) / samples.length;
-        const avgForcePct = samples.reduce((acc, s) => acc + Number(s.forceLevel || 0), 0) / samples.length;
-        const rawDisp = (avgTiltPct * 0.42) + (avgForcePct * 0.25);
-        disp = Number((rawDisp > 0.1 ? rawDisp : 42.5).toFixed(1));
-
-        // 5. Subsidence Velocity (mm/h): derived from vibration + tilt rate
-        const rawVel = Math.max(0.5, (vib * 0.15) + (avgTiltPct * 0.03));
-        vel = Number(rawVel.toFixed(1));
-      }
-
-      const cmd = `python main.py --node-id ${nodeId} --disp ${disp.toFixed(1)} --tilt ${tilt.toFixed(1)} --vib ${vib.toFixed(2)} --temp ${temp.toFixed(1)} --vel ${vel.toFixed(1)}`;
-      document.getElementById('formalCommandOutput').textContent = cmd;
-
-      // Also print to Serial Monitor at the end of 20 seconds
-      const ts = new Date().toLocaleTimeString();
-      appendSerialLine(ts, `======================================`);
-      appendSerialLine(ts, `20 SEC END FORMAL COMMAND GENERATED:`);
-      appendSerialLine(ts, cmd);
-      appendSerialLine(ts, `======================================`);
-    }
-
-    function copyFormalCommand() {
-      const cmdText = document.getElementById('formalCommandOutput').textContent.trim();
-      navigator.clipboard.writeText(cmdText);
-      const btn = document.getElementById('copyCmdBtn');
-      btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = 'Copy Command'; }, 1800);
-    }
-
-    async function refreshPorts() {
-      try {
-        const res = await fetch('/api/status');
-        if (!res.ok) throw new Error('Offline');
-        const status = await res.json();
-        populatePortDropdown(status.ports || [], status.port);
-        applyStatusUpdate(status);
-      } catch (err) {
-        const sel = document.getElementById('portSelect');
-        sel.innerHTML = '<option value="WEBSERIAL">Use USB WebSerial Button</option>';
-      }
-    }
-
-    function populatePortDropdown(ports, selectedPort) {
-      const sel = document.getElementById('portSelect');
-      const prevVal = selectedPort || sel.value;
-      sel.innerHTML = '';
-
-      if (ports.length === 0) {
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.textContent = 'No COM ports found';
-        sel.appendChild(opt);
-        return;
-      }
-
-      ports.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.device;
-        const usbTag = p.isUsb ? ' [USB ESP32]' : '';
-        opt.textContent = `${p.device} — ${p.description}${usbTag}`;
-        if (prevVal && p.device.toUpperCase() === prevVal.toUpperCase()) {
-          opt.selected = true;
-        }
-        sel.appendChild(opt);
-      });
-    }
-
-    async function fetchInitialRawLines() {
-      try {
-        const res = await fetch('/api/raw');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.lines) {
-          data.lines.forEach(item => appendSerialLine(item.time, item.text));
-        }
-      } catch (e) {}
-    }
-
-    function connectSSE() {
-      const evtSource = new EventSource('/api/stream');
-
-      evtSource.addEventListener('status', (e) => {
-        const status = JSON.parse(e.data);
-        if (status.ports) populatePortDropdown(status.ports, status.port);
-        applyStatusUpdate(status);
-      });
-
-      evtSource.addEventListener('sensor_data', (e) => {
-        const payload = JSON.parse(e.data);
-        document.getElementById('ribbonPackets').textContent = payload.packetCount;
-        if (payload.lastUpdate) {
-          const dt = new Date(payload.lastUpdate * 1000);
-          document.getElementById('ribbonLastTime').textContent = dt.toLocaleTimeString();
-        }
-        if (payload.port) {
-          document.getElementById('activePortDisplay').textContent = payload.port;
-          document.getElementById('ribbonPortName').textContent = payload.port;
-        }
-        if (payload.portDescription) {
-          document.getElementById('ribbonChipDesc').textContent = payload.portDescription;
-        }
-        updateSensorUI(payload.data);
-      });
-
-      evtSource.addEventListener('raw', (e) => {
-        const item = JSON.parse(e.data);
-        appendSerialLine(item.time, item.text);
-      });
-    }
-
-    function applyStatusUpdate(status) {
-      isConnected = status.connected;
-      const pill = document.getElementById('connPill');
-      const stateText = document.getElementById('connStateText');
-      const connectBtn = document.getElementById('connectBtn');
-
-      if (status.connected) {
-        pill.classList.add('connected');
-        stateText.textContent = 'CONNECTED';
-        document.getElementById('activePortDisplay').textContent = status.port;
-        document.getElementById('ribbonPortName').textContent = status.port;
-        document.getElementById('ribbonChipDesc').textContent = status.portDescription || status.port;
-        document.getElementById('ribbonBaud').textContent = `${status.baudrate} bps`;
-        document.getElementById('serialMonitorSubtitle').textContent =
-          `Streaming live from ${status.portDescription || status.port} @ ${status.baudrate} baud`;
-        connectBtn.textContent = 'Disconnect';
-        connectBtn.className = 'btn btn-danger';
-      } else {
-        pill.classList.remove('connected');
-        stateText.textContent = 'DISCONNECTED';
-        document.getElementById('activePortDisplay').textContent = 'Not Connected';
-        connectBtn.textContent = 'Connect Port';
-        connectBtn.className = 'btn btn-primary';
-      }
-
-      if (status.packetCount !== undefined) {
-        document.getElementById('ribbonPackets').textContent = status.packetCount;
-      }
-
-      if (status.data && status.data.packetId > 0) {
-        updateSensorUI(status.data);
-      }
-    }
-
-    async function handleConnectClick() {
-      if (webSerialActive) {
-        await disconnectWebSerial();
-        return;
-      }
-
-      const port = document.getElementById('portSelect').value;
-      const baudrate = parseInt(document.getElementById('baudSelect').value, 10) || 115200;
-
-      if (isConnected) {
-        await fetch('/api/disconnect', { method: 'POST' });
-        await refreshPorts();
-      } else {
-        if (!port) {
-          alert('Please select a valid COM port.');
-          return;
-        }
-        const res = await fetch('/api/connect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ port, baudrate })
-        });
-        const out = await res.json();
-        if (!out.ok) alert('Failed to connect: ' + out.message);
-        if (out.status) applyStatusUpdate(out.status);
-      }
-    }
-
-    // =========================================================================
-    // UPDATE SENSOR CARDS & ANALYSIS CHARTS
-    // =========================================================================
-    function updateSensorUI(d) {
-      if (!d) return;
-
-      const ax = Number(d.angleX || 0);
-      const ay = Number(d.angleY || 0);
-      const px = Number(d.percentageX || 0);
-      const py = Number(d.percentageY || 0);
-
-      document.getElementById('angleXVal').textContent = ax.toFixed(2);
-      document.getElementById('pctXVal').textContent = `${px.toFixed(1)}%`;
-      document.getElementById('angleYVal').textContent = ay.toFixed(2);
-      document.getElementById('pctYVal').textContent = `${py.toFixed(1)}%`;
-      document.getElementById('mpuSummaryText').innerHTML =
-        `Abs X: ${Math.abs(ax).toFixed(1)}&deg; | Abs Y: ${Math.abs(ay).toFixed(1)}&deg;`;
-
-      // Vibration
-      const vib = Number(d.vibration || 0);
-      const vibLvl = Number(d.vibrationLevel || 0);
-      if (vib > peakVibration) peakVibration = vib;
-
-      document.getElementById('vibrationVal').textContent = vib.toFixed(2);
-      document.getElementById('vibrationLevelVal').textContent = vibLvl.toFixed(1);
-      document.getElementById('vibBarLabel').textContent = `Current: ${vibLvl.toFixed(1)}%`;
-      document.getElementById('peakVibVal').innerHTML = `${peakVibration.toFixed(2)} m/s&sup2;`;
-
-      // DHT11
-      if (d.temperature !== null && d.humidity !== null) {
-        document.getElementById('tempVal').textContent = Number(d.temperature).toFixed(1);
-        document.getElementById('humVal').textContent = Number(d.humidity).toFixed(1);
-      }
-      if (!d.dhtOk) {
-        document.getElementById('heatIndexText').textContent =
-          d.temperature !== null ? 'Holding last reading' : 'DHT11 read failed (GPIO 4)';
-      } else if (d.temperature !== null) {
-        document.getElementById('heatIndexText').textContent = 'Sensor Active';
-      }
-
-      // Soil Moisture & FSR
-      const soilRaw = Number(d.soilRaw ?? 4095);
-      const moisture = Number(d.moisture ?? 0);
-      const fsrRaw = Number(d.fsrRaw ?? 0);
-      const force = Number(d.forceLevel ?? 0);
-      if (force > peakForce) peakForce = force;
-
-      document.getElementById('soilRawVal').textContent = soilRaw;
-      document.getElementById('moistureVal').textContent = moisture;
-      document.getElementById('fsrRawVal').textContent = fsrRaw;
-      document.getElementById('forceLevelVal').textContent = force;
-      document.getElementById('peakForceVal').textContent = `${peakForce}%`;
-
-      const prevTemp = historyData.length > 0 ? historyData[historyData.length - 1].temperature : 0;
-      const prevHum = historyData.length > 0 ? historyData[historyData.length - 1].humidity : 0;
-
-      const sampleObj = {
-        time: new Date().toLocaleTimeString(),
-        angleX: ax,
-        percentageX: px,
-        angleY: ay,
-        percentageY: py,
-        vibration: vib,
-        vibrationLevel: vibLvl,
-        temperature: d.temperature !== null ? Number(d.temperature) : prevTemp,
-        humidity: d.humidity !== null ? Number(d.humidity) : prevHum,
-        soilRaw: soilRaw,
-        moisture: moisture,
-        fsrRaw: fsrRaw,
-        forceLevel: force
-      };
-
-      historyData.push(sampleObj);
-      if (!cmdGenerated) {
-        windowSamples.push(sampleObj);
-      }
-
-      if (historyData.length > MAX_HISTORY) {
-        historyData.shift();
-      }
-
-      renderAllCharts();
-    }
-
-    // =========================================================================
-    // CHART RENDERING ENGINE (MASTER CHART + 4 ANALYSIS CHARTS)
-    // =========================================================================
-    function renderAllCharts() {
-      // 1. Master Multi-Sensor Chart
-      drawMultiChart('telemetryChart', [
-        { key: 'percentageX', color: '#0284c7', fill: false },
-        { key: 'percentageY', color: '#7c3aed', fill: false },
-        { key: 'vibrationLevel', color: '#d97706', fill: false },
-        { key: 'temperature', color: '#059669', fill: false },
-        { key: 'moisture', color: '#2563eb', fill: false },
-        { key: 'forceLevel', color: '#e11d48', fill: false }
-      ], 100);
-
-      // 2. Card 1: MPU6050 Tilt Analysis Chart (Angle X % vs Angle Y %)
-      drawMultiChart('chartTilt', [
-        { key: 'percentageX', color: '#0284c7', fill: 'rgba(2, 132, 199, 0.08)' },
-        { key: 'percentageY', color: '#7c3aed', fill: 'rgba(124, 58, 237, 0.08)' }
-      ], 100);
-
-      // 3. Card 2: MPU6050 Vibration Bar + Line Analysis Chart
-      drawBarLineChart('chartVib', 'vibrationLevel', '#d97706', 'rgba(217, 119, 6, 0.22)', 100);
-
-      // 4. Card 3: DHT11 Temperature & Humidity Analysis Chart
-      drawMultiChart('chartDht', [
-        { key: 'temperature', color: '#059669', fill: 'rgba(5, 150, 105, 0.08)' },
-        { key: 'humidity', color: '#0284c7', fill: 'rgba(2, 132, 199, 0.06)' }
-      ], 100);
-
-      // 5. Card 4: Soil Moisture & FSR Force Analysis Chart
-      drawMultiChart('chartAdc', [
-        { key: 'moisture', color: '#2563eb', fill: 'rgba(37, 99, 235, 0.08)' },
-        { key: 'forceLevel', color: '#e11d48', fill: 'rgba(225, 29, 72, 0.10)' }
-      ], 100);
-    }
-
-    function drawMultiChart(canvasId, seriesList, maxVal = 100) {
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) return;
-      const rect = canvas.parentElement.getBoundingClientRect();
-      canvas.width = Math.max(100, rect.width);
-      canvas.height = Math.max(80, rect.height);
-
-      const ctx = canvas.getContext('2d');
-      const W = canvas.width;
-      const H = canvas.height;
-      ctx.clearRect(0, 0, W, H);
-
-      const padL = 34, padR = 10, padT = 8, padB = 16;
-      const plotW = W - padL - padR;
-      const plotH = H - padT - padB;
-
-      // Subtle horizontal grid lines
-      ctx.strokeStyle = '#f1f5f9';
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '10px Consolas, monospace';
-      ctx.lineWidth = 1;
-
-      const steps = 4;
-      for (let i = 0; i <= steps; i++) {
-        const val = Math.round((maxVal / steps) * i);
-        const y = padT + plotH - (val / maxVal) * plotH;
-        ctx.beginPath();
-        ctx.moveTo(padL, y);
-        ctx.lineTo(padL + plotW, y);
-        ctx.stroke();
-        ctx.fillText(`${val}`, 2, y + 3);
-      }
-
-      if (historyData.length < 1) return;
-
-      seriesList.forEach(s => {
-        const pts = historyData.map((d, idx) => {
-          const x = padL + (historyData.length === 1 ? plotW / 2 : (idx / (MAX_HISTORY - 1)) * plotW);
-          const v = Math.min(maxVal, Math.max(0, Number(d[s.key] || 0)));
-          const y = padT + plotH - (v / maxVal) * plotH;
-          return { x, y };
-        });
-
-        if (s.fill && pts.length > 1) {
-          ctx.fillStyle = s.fill;
-          ctx.beginPath();
-          ctx.moveTo(pts[0].x, padT + plotH);
-          pts.forEach(p => ctx.lineTo(p.x, p.y));
-          ctx.lineTo(pts[pts.length - 1].x, padT + plotH);
-          ctx.closePath();
-          ctx.fill();
-        }
-
-        ctx.strokeStyle = s.color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        pts.forEach((p, i) => {
-          if (i === 0) ctx.moveTo(p.x, p.y);
-          else ctx.lineTo(p.x, p.y);
-        });
-        ctx.stroke();
-
-        const last = pts[pts.length - 1];
-        ctx.fillStyle = s.color;
-        ctx.beginPath();
-        ctx.arc(last.x, last.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    }
-
-    function drawBarLineChart(canvasId, key, strokeColor, barColor, maxVal = 100) {
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) return;
-      const rect = canvas.parentElement.getBoundingClientRect();
-      canvas.width = Math.max(100, rect.width);
-      canvas.height = Math.max(80, rect.height);
-
-      const ctx = canvas.getContext('2d');
-      const W = canvas.width;
-      const H = canvas.height;
-      ctx.clearRect(0, 0, W, H);
-
-      const padL = 34, padR = 10, padT = 8, padB = 16;
-      const plotW = W - padL - padR;
-      const plotH = H - padT - padB;
-
-      ctx.strokeStyle = '#f1f5f9';
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '10px Consolas, monospace';
-      for (let i = 0; i <= 4; i++) {
-        const val = i * 25;
-        const y = padT + plotH - (val / maxVal) * plotH;
-        ctx.beginPath();
-        ctx.moveTo(padL, y);
-        ctx.lineTo(padL + plotW, y);
-        ctx.stroke();
-        ctx.fillText(`${val}`, 2, y + 3);
-      }
-
-      if (historyData.length < 1) return;
-
-      const barW = Math.max(4, (plotW / MAX_HISTORY) - 3);
-      const pts = [];
-
-      historyData.forEach((d, idx) => {
-        const x = padL + (historyData.length === 1 ? plotW / 2 : (idx / (MAX_HISTORY - 1)) * plotW);
-        const v = Math.min(maxVal, Math.max(0, Number(d[key] || 0)));
-        const h = (v / maxVal) * plotH;
-        const y = padT + plotH - h;
-        pts.push({ x, y });
-
-        ctx.fillStyle = barColor;
-        ctx.fillRect(x - barW / 2, y, barW, Math.max(2, h));
-      });
-
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      pts.forEach((p, i) => {
-        if (i === 0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      });
-      ctx.stroke();
-
-      const last = pts[pts.length - 1];
-      ctx.fillStyle = strokeColor;
-      ctx.beginPath();
-      ctx.arc(last.x, last.y, 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // =========================================================================
-    // LIVE SERIAL CONSOLE
-    // =========================================================================
-    function appendSerialLine(timeStr, text) {
-      if (serialPaused) return;
-      const consoleEl = document.getElementById('serialConsole');
-      const lineEl = document.createElement('div');
-      lineEl.className = 'serial-line';
-
-      let contentClass = '';
-      if (text.includes('===') || text.includes('---') || text.includes('SENSOR DATA')) {
-        contentClass = 'serial-highlight-header';
-      } else if (text.includes('failed')) {
-        contentClass = 'serial-highlight-warn';
-      }
-
-      lineEl.innerHTML = `<span class="serial-ts">[${timeStr}]</span><span class="${contentClass}">${escapeHtml(text)}</span>`;
-      consoleEl.appendChild(lineEl);
-
-      while (consoleEl.children.length > 160) {
-        consoleEl.removeChild(consoleEl.firstChild);
-      }
-      consoleEl.scrollTop = consoleEl.scrollHeight;
-    }
-
-    function escapeHtml(str) {
-      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    function toggleSerialPause() {
-      serialPaused = !serialPaused;
-      document.getElementById('pauseSerialBtn').textContent = serialPaused ? 'Resume' : 'Pause';
-    }
-
-    function clearSerialConsole() {
-      document.getElementById('serialConsole').innerHTML = '';
-    }
-
-    function exportCSV() {
-      if (historyData.length === 0) {
-        alert('No sensor data recorded yet.');
-        return;
-      }
-      const headers = [
-        'Time', 'AngleX_deg', 'AngleX_pct', 'AngleY_deg', 'AngleY_pct',
-        'Vibration_ms2', 'Vibration_pct', 'Temperature_C', 'Humidity_pct',
-        'Soil_Raw', 'Moisture_pct', 'FSR_Raw', 'Force_pct'
-      ];
-      const rows = historyData.map(r => [
-        r.time, r.angleX, r.percentageX, r.angleY, r.percentageY,
-        r.vibration, r.vibrationLevel, r.temperature, r.humidity,
-        r.soilRaw, r.moisture, r.fsrRaw, r.forceLevel
-      ].join(','));
-
-      const csv = [headers.join(','), ...rows].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `esp32_node_reading_${Date.now()}.csv`;
-      a.click();
-    }
-
-    // =========================================================================
-    // DIRECT BROWSER WEB SERIAL API SUPPORT
-    // =========================================================================
-    async function connectWebSerial() {
-      if (!('serial' in navigator)) {
-        alert('Web Serial API requires Chrome or Edge.');
-        return;
-      }
-      try {
-        try { await fetch('/api/disconnect', { method: 'POST' }); } catch (e) {}
-
-        const baudRate = parseInt(document.getElementById('baudSelect').value, 10) || 115200;
-        webSerialPort = await navigator.serial.requestPort();
-        await webSerialPort.open({ baudRate });
-        webSerialActive = true;
-
-        document.getElementById('connPill').classList.add('connected');
-        document.getElementById('connStateText').textContent = 'CONNECTED (WEB SERIAL)';
-        document.getElementById('activePortDisplay').textContent = 'USB WebSerial';
-        document.getElementById('ribbonPortName').textContent = 'WebSerial Direct';
-        document.getElementById('connectBtn').textContent = 'Disconnect';
-        document.getElementById('connectBtn').className = 'btn btn-danger';
-
-        const decoder = new TextDecoderStream();
-        webSerialPort.readable.pipeTo(decoder.writable);
-        webSerialReader = decoder.readable.getReader();
-
-        let buffer = '';
-        while (webSerialActive) {
-          const { value, done } = await webSerialReader.read();
-          if (done) break;
-          if (value) {
-            buffer += value;
-            while (buffer.includes('\n')) {
-              const idx = buffer.indexOf('\n');
-              const line = buffer.slice(0, idx).trim();
-              buffer = buffer.slice(idx + 1);
-              if (line) parseWebSerialLine(line);
+    let p1Connected = false;
+    let p2Connected = false;
+
+    // One independent chart and history per sensor.
+    const sensorCharts = {};
+    const chartLabels = [];
+    const sensorHistory = {};
+
+    function createSensorChart(id, label, color) {
+      const history = [];
+      sensorHistory[id] = history;
+      sensorCharts[id] = new Chart(document.getElementById(id).getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: chartLabels,
+          datasets: [
+            {
+              label,
+              data: history,
+              borderColor: color,
+              backgroundColor: `${color}1a`,
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              grid: { color: 'rgba(0, 0, 0, 0.04)' },
+              ticks: { font: { size: 10, family: 'monospace' }, maxTicksLimit: 6 }
+            },
+            y: {
+              grid: { color: 'rgba(0, 0, 0, 0.04)' },
+              ticks: { font: { size: 10, family: 'monospace' } }
             }
           }
         }
-      } catch (err) {
-        console.error(err);
+      });
+    }
+
+    function initCharts() {
+      createSensorChart('n1-hx711-chart', 'HX711 Load Δ', '#dc2626');
+      createSensorChart('n1-adxl-chart', 'ADXL345 (g)', '#0284c7');
+      createSensorChart('n1-mpu-chart', 'MPU6500 (g)', '#ea580c');
+      createSensorChart('n2-accel-x-chart', 'Accel X (g)', '#16a34a');
+      createSensorChart('n2-accel-y-chart', 'Accel Y (g)', '#16a34a');
+      createSensorChart('n2-accel-z-chart', 'Accel Z (g)', '#16a34a');
+      createSensorChart('n2-gyro-x-chart', 'Gyro X (°/s)', '#7c3aed');
+      createSensorChart('n2-gyro-y-chart', 'Gyro Y (°/s)', '#7c3aed');
+      createSensorChart('n2-gyro-z-chart', 'Gyro Z (°/s)', '#7c3aed');
+      createSensorChart('n2-temp-chart', 'Temperature (°C)', '#0284c7');
+      createSensorChart('n2-soil-raw-chart', 'Soil Raw (ADC)', '#d97706');
+      createSensorChart('n2-moisture-chart', 'Moisture (%)', '#16a34a');
+    }
+
+    function pushSensorValue(id, value) {
+      sensorHistory[id].push(value);
+      if (sensorHistory[id].length > 25) {
+        sensorHistory[id].shift();
       }
     }
 
-    async function disconnectWebSerial() {
-      webSerialActive = false;
-      try {
-        if (webSerialReader) await webSerialReader.cancel();
-        if (webSerialPort) await webSerialPort.close();
-      } catch (e) {}
-      document.getElementById('connPill').classList.remove('connected');
-      document.getElementById('connStateText').textContent = 'DISCONNECTED';
-      document.getElementById('connectBtn').textContent = 'Connect Port';
-      document.getElementById('connectBtn').className = 'btn btn-primary';
+    function fetchAiPrediction() {
+      const refreshProgress = document.getElementById('ai-refresh-progress');
+      refreshProgress.classList.remove('running');
+      void refreshProgress.offsetWidth;
+      refreshProgress.classList.add('running');
+
+      fetch('/api/ai_prediction')
+        .then(r => r.json())
+        .then(prediction => {
+          if (!prediction || !prediction.ok) {
+            throw new Error(prediction?.error || 'Prediction unavailable');
+          }
+
+          document.getElementById('ai-node').textContent = prediction.node_id ?? 45;
+          document.getElementById('ai-disp').textContent = `${Number(prediction.disp_corr_mm ?? 2.5).toFixed(2)} mm`;
+          document.getElementById('ai-predicted').textContent = `${Number(prediction.pred_subsidence_24h_mm ?? 2.98).toFixed(2)} mm`;
+          document.getElementById('ai-risk').textContent = prediction.dgms_risk_tier || 'SAFE';
+          const ttcHours = Number(prediction.ttc_hours ?? 0);
+          document.getElementById('ai-ttc').textContent = ttcHours >= 999
+            ? 'Stable'
+            : (ttcHours <= 0 ? 'BREACHED' : `${ttcHours.toFixed(2)} h`);
+          document.getElementById('ai-command').textContent = prediction.cli_command || 'python main.py --node-id 45 --disp 2.5 --tilt 0.0 --vib 0.10 --temp 25.0 --vel 0.02';
+
+          const updatedAt = prediction.updated_at
+            ? new Date(prediction.updated_at * 1000).toLocaleTimeString()
+            : new Date().toLocaleTimeString();
+          const sampleCount = prediction.sample_count || 0;
+          document.getElementById('ai-refresh-status').textContent = `Updated ${updatedAt} · ${sampleCount} sample average · next update in 20 seconds`;
+        })
+        .catch(() => {
+          document.getElementById('ai-refresh-status').textContent = 'Prediction unavailable · retrying in 20 seconds';
+        });
     }
 
-    function parseWebSerialLine(clean) {
-      const ts = new Date().toLocaleTimeString();
-      appendSerialLine(ts, clean);
+    // Fetch serial ports and update dropdowns
+    function loadPorts() {
+      fetch('/api/ports')
+        .then(r => r.json())
+        .then(d => {
+          const ports = d.ports || [];
+          ['p1-select', 'p2-select'].forEach((selectId, i) => {
+            const sel = document.getElementById(selectId);
+            const currentVal = sel.value;
+            sel.innerHTML = '';
+            if (ports.length === 0) {
+              sel.innerHTML = '<option value="">No COM Ports Found (Sim Mode)</option>';
+            } else {
+              ports.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.device || p;
+                opt.textContent = `${p.device || p} - ${p.description || ''}`;
+                sel.appendChild(opt);
+              });
+              if (currentVal && ports.some(p => (p.device || p) === currentVal)) {
+                sel.value = currentVal;
+              } else if (ports[i]) {
+                sel.value = ports[i].device || ports[i];
+              }
+            }
+          });
+        })
+        .catch(() => {});
+    }
 
-      if (clean.includes('MPU6050') && clean.includes('===')) { localSection = 'MPU6050'; return; }
-      if (clean.includes('DHT11') && clean.includes('---')) { localSection = 'DHT11'; return; }
-      if (clean.includes('SOIL MOISTURE') && clean.includes('---')) { localSection = 'SOIL'; return; }
-      if (clean.includes('FSR') && clean.includes('---')) { localSection = 'FSR'; return; }
+    function toggleConnect(nodeIdx) {
+      const port = document.getElementById(`p${nodeIdx}-select`).value;
+      const baud = document.getElementById(`p${nodeIdx}-baud`).value;
+      fetch(`/api/dual/connect?node=${nodeIdx}&port=${encodeURIComponent(port)}&baud=${baud}`)
+        .then(r => r.json())
+        .then(d => {
+          if (nodeIdx === 1) p1Connected = d.connected;
+          if (nodeIdx === 2) p2Connected = d.connected;
+          updateConnectUI();
+        })
+        .catch(() => {
+          if (nodeIdx === 1) p1Connected = !p1Connected;
+          if (nodeIdx === 2) p2Connected = !p2Connected;
+          updateConnectUI();
+        });
+    }
 
-      const afterColon = clean.includes(':') ? clean.split(':')[1] : clean;
-      const m = afterColon.match(/[-+]?\d+(?:\.\d+)?/);
-      const val = m ? parseFloat(m[0]) : null;
+    function updateConnectUI() {
+      const p1Btn = document.getElementById('p1-btn');
+      const p1State = document.getElementById('p1-state');
+      if (p1Connected) {
+        p1Btn.textContent = 'Disconnect Port 1';
+        p1Btn.className = 'disconnect';
+        p1State.textContent = 'ONLINE (HARDWARE)';
+        p1State.style.color = '#16a34a';
+      } else {
+        p1Btn.textContent = 'Connect Port 1';
+        p1Btn.className = 'primary';
+        p1State.textContent = 'STREAMING (SIM)';
+        p1State.style.color = '#d97706';
+      }
 
-      if (clean.startsWith('Angle X') && val !== null) {
-        if (clean.includes('deg')) localWorking.angleX = val;
-        else if (clean.includes('%')) localWorking.percentageX = val;
-      } else if (clean.startsWith('Angle Y') && val !== null) {
-        if (clean.includes('deg')) localWorking.angleY = val;
-        else if (clean.includes('%')) localWorking.percentageY = val;
-      } else if (clean.startsWith('Vibration Level') && val !== null) {
-        localWorking.vibrationLevel = val;
-      } else if (clean.startsWith('Vibration') && val !== null) {
-        localWorking.vibration = val;
-      } else if (clean.includes('DHT11 reading failed')) {
-        localWorking.dhtOk = false;
-      } else if (clean.startsWith('Temperature') && val !== null) {
-        localWorking.temperature = val;
-        localWorking.dhtOk = true;
-      } else if (clean.startsWith('Humidity') && val !== null) {
-        localWorking.humidity = val;
-        localWorking.dhtOk = true;
-      } else if (clean.startsWith('Raw Value') && val !== null) {
-        if (localSection === 'SOIL') localWorking.soilRaw = Math.round(val);
-        else if (localSection === 'FSR') localWorking.fsrRaw = Math.round(val);
-      } else if (clean.startsWith('Moisture') && val !== null) {
-        localWorking.moisture = Math.round(val);
-      } else if (clean.startsWith('Force Level') && val !== null) {
-        localWorking.forceLevel = Math.round(val);
-        localPacketCount++;
-        document.getElementById('ribbonPackets').textContent = localPacketCount;
-        document.getElementById('ribbonLastTime').textContent = ts;
-        updateSensorUI({ ...localWorking });
+      const p2Btn = document.getElementById('p2-btn');
+      const p2State = document.getElementById('p2-state');
+      if (p2Connected) {
+        p2Btn.textContent = 'Disconnect Port 2';
+        p2Btn.className = 'disconnect';
+        p2State.textContent = 'ONLINE (HARDWARE)';
+        p2State.style.color = '#16a34a';
+      } else {
+        p2Btn.textContent = 'Connect Port 2';
+        p2Btn.className = 'primary';
+        p2State.textContent = 'STREAMING (SIM)';
+        p2State.style.color = '#d97706';
       }
     }
 
-    window.addEventListener('DOMContentLoaded', initDashboard);
+    // Live Telemetry Loop
+    function pollData() {
+      fetch('/api/dual/status')
+        .then(r => r.json())
+        .then(d => {
+          if (!d || !d.ok) return;
+          const n1 = d.node1_hx711_impact || {};
+          const n2 = d.node2_trekker || {};
+          const fused = d.fused_telemetry || {};
+
+          // Update Connection states if reported by server
+          if (n1.connected !== undefined && n1.connected !== p1Connected) {
+            p1Connected = n1.connected;
+            updateConnectUI();
+          }
+          if (n2.connected !== undefined && n2.connected !== p2Connected) {
+            p2Connected = n2.connected;
+            updateConnectUI();
+          }
+
+          // Top KPIs
+          document.getElementById('kpi-disp').textContent = `${(fused.displacement_mm || 42.5).toFixed(2)} mm`;
+          document.getElementById('kpi-temp').textContent = `${(n2.temperature_c || 24.62).toFixed(2)} °C`;
+          document.getElementById('kpi-moisture').textContent = `${n2.moisture_pct || 56.5} %`;
+          document.getElementById('kpi-ttc').textContent = `${(fused.ttc_hours || 4.33).toFixed(2)} hrs`;
+          if (fused.dgms_tier) {
+            const dEl = document.getElementById('kpi-dgms');
+            dEl.textContent = fused.dgms_tier;
+            dEl.style.color = fused.dgms_tier === 'CRITICAL' ? '#dc2626' : (fused.dgms_tier === 'WARNING' ? '#d97706' : '#16a34a');
+          }
+
+          // Node 1 Readouts
+          document.getElementById('n1-packets').textContent = `${n1.packets || 0} Packets`;
+          document.getElementById('n1-offset').textContent = (n1.zero_offset || 8344000).toLocaleString();
+          document.getElementById('n1-raw').textContent = (n1.raw_load || 8345420).toLocaleString();
+          document.getElementById('n1-change').textContent = `${n1.load_change >= 0 ? '+' : ''}${n1.load_change || 1420}`;
+          document.getElementById('n1-adxl').textContent = `${(n1.adxl_mag || 1.002).toFixed(3)} g`;
+          document.getElementById('n1-adxl-peak').textContent = `${(n1.adxl_peak || 0.045).toFixed(3)} g`;
+          document.getElementById('n1-mpu').textContent = `${(n1.mpu_mag || 0.998).toFixed(3)} g`;
+
+          // Shock Banner
+          if (n1.last_impact) {
+            document.getElementById('n1-impact-txt').textContent = n1.last_impact;
+          }
+          if (n1.last_impact_parsed) {
+            document.getElementById('n1-gap-badge').textContent = `GAP: ${n1.last_impact_parsed.gap_us} us`;
+          }
+
+          // Impact History Table
+          if (n1.impact_history && n1.impact_history.length > 0) {
+            const tbody = document.getElementById('n1-impact-tbody');
+            tbody.innerHTML = '';
+            n1.impact_history.forEach(imp => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td>${imp.time || ''}</td>
+                <td style="color:#0284c7; font-weight:700;">${imp.first}</td>
+                <td>${imp.gap_us} μs</td>
+                <td>${imp.adxl_g} g</td>
+                <td>${imp.mpu_g} g</td>
+              `;
+              tbody.appendChild(tr);
+            });
+          }
+
+          // Node 1 Console
+          if (n1.recent_lines && n1.recent_lines.length > 0) {
+            const cBox = document.getElementById('n1-console');
+            cBox.innerHTML = n1.recent_lines.map(l => 
+              `<div class="console-line"><span class="console-time">${l.time}</span><span>${l.text}</span></div>`
+            ).join('');
+            cBox.scrollTop = cBox.scrollHeight;
+          }
+
+          // Node 2 Readouts
+          document.getElementById('n2-packets').textContent = `${n2.packets || 0} Packets`;
+          if (n2.accel) {
+            document.getElementById('n2-ax').textContent = `${Number(n2.accel[0]).toFixed(3)} g`;
+            document.getElementById('n2-ay').textContent = `${Number(n2.accel[1]).toFixed(3)} g`;
+            document.getElementById('n2-az').textContent = `${Number(n2.accel[2]).toFixed(3)} g`;
+          }
+          if (n2.gyro) {
+            document.getElementById('n2-gx').textContent = `${Number(n2.gyro[0]).toFixed(2)} °/s`;
+            document.getElementById('n2-gy').textContent = `${Number(n2.gyro[1]).toFixed(2)} °/s`;
+            document.getElementById('n2-gz').textContent = `${Number(n2.gyro[2]).toFixed(2)} °/s`;
+          }
+          document.getElementById('n2-temp').textContent = `${(n2.temperature_c || 24.62).toFixed(2)} °C`;
+          document.getElementById('n2-soil').textContent = (n2.soil_raw || 1780).toLocaleString();
+          document.getElementById('n2-moisture-pct').textContent = `${n2.moisture_pct || 56.5} %`;
+
+          // Node 2 Console
+          if (n2.recent_lines && n2.recent_lines.length > 0) {
+            const cBox = document.getElementById('n2-console');
+            cBox.innerHTML = n2.recent_lines.map(l => 
+              `<div class="console-line"><span class="console-time">${l.time}</span><span>${l.text}</span></div>`
+            ).join('');
+            cBox.scrollTop = cBox.scrollHeight;
+          }
+
+          // Update Charts Data
+          const nowStr = d.timestamp || new Date().toLocaleTimeString();
+          chartLabels.push(nowStr);
+          pushSensorValue('n1-hx711-chart', n1.load_change || 0);
+          pushSensorValue('n1-adxl-chart', Math.abs((n1.adxl_mag || 1.0) - 1.0));
+          pushSensorValue('n1-mpu-chart', Math.abs((n1.mpu_mag || 1.0) - 1.0));
+
+          pushSensorValue('n2-accel-x-chart', n2.accel ? n2.accel[0] : 0.0);
+          pushSensorValue('n2-accel-y-chart', n2.accel ? n2.accel[1] : 0.0);
+          pushSensorValue('n2-accel-z-chart', n2.accel ? n2.accel[2] : 0.0);
+          pushSensorValue('n2-gyro-x-chart', n2.gyro ? n2.gyro[0] : 0.0);
+          pushSensorValue('n2-gyro-y-chart', n2.gyro ? n2.gyro[1] : 0.0);
+          pushSensorValue('n2-gyro-z-chart', n2.gyro ? n2.gyro[2] : 0.0);
+          pushSensorValue('n2-temp-chart', n2.temperature_c || 24.62);
+          pushSensorValue('n2-soil-raw-chart', n2.soil_raw || 1780);
+          pushSensorValue('n2-moisture-chart', n2.moisture_pct || 56.5);
+
+          if (chartLabels.length > 25) {
+            chartLabels.shift();
+          }
+
+          Object.values(sensorCharts).forEach(chart => chart.update());
+        })
+        .catch(() => {});
+    }
+
+    // Fetch MongoDB Persisted Documents
+    function fetchMongoRecords() {
+      fetch('/api/mongo/records?limit=15')
+        .then(r => r.json())
+        .then(d => {
+          if (!d || !d.ok) return;
+          const stats = d.stats || {};
+          if (stats.hardware_telemetry_count !== undefined) {
+            document.getElementById('m-telemetry-count').textContent = stats.hardware_telemetry_count.toLocaleString();
+          }
+          if (stats.aiml_predictions_count !== undefined) {
+            document.getElementById('m-predictions-count').textContent = stats.aiml_predictions_count.toLocaleString();
+          }
+          if (stats.heatmap_nodes_count !== undefined) {
+            document.getElementById('m-nodes-count').textContent = stats.heatmap_nodes_count.toLocaleString();
+          }
+          if (stats.system_alerts_count !== undefined) {
+            document.getElementById('m-alerts-count').textContent = stats.system_alerts_count.toLocaleString();
+          }
+
+          const records = d.records || [];
+          const tbody = document.getElementById('mongo-records-tbody');
+          if (records.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No records in MongoDB yet. Writing incoming packets...</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = records.map(r => {
+            const n1 = r.node1 || {};
+            const n2 = r.node2 || {};
+            const f = r.fused || {};
+            const dgms = f.dgms_tier || 'SAFE';
+            const badgeColor = dgms === 'CRITICAL' ? '#dc2626' : (dgms === 'WARNING' ? '#d97706' : '#16a34a');
+            return `
+              <tr>
+                <td>${r.timestamp || r.time_str || '-'}</td>
+                <td style="color:${n1.load_change >= 0 ? '#16a34a' : '#dc2626'}; font-weight:700;">
+                  ${n1.load_change >= 0 ? '+' : ''}${n1.load_change || 0}
+                </td>
+                <td>${(n1.adxl_mag || 1.0).toFixed(3)}</td>
+                <td>${(n1.mpu_mag || 1.0).toFixed(3)}</td>
+                <td>${(f.tilt_deg || 0).toFixed(2)}°</td>
+                <td style="color:#0284c7; font-weight:600;">${(n2.temperature_c || 24.5).toFixed(2)} °C</td>
+                <td style="color:#16a34a; font-weight:600;">${n2.moisture_pct || 0}%</td>
+                <td style="font-weight:700;">${(f.displacement_mm || 0).toFixed(2)} mm</td>
+                <td>
+                  <span style="background:${badgeColor}22; color:${badgeColor}; font-weight:700; padding:2px 8px; border-radius:4px;">
+                    ${dgms}
+                  </span>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        })
+        .catch(() => {});
+    }
+
+    window.addEventListener('load', () => {
+      initCharts();
+      loadPorts();
+      pollData();
+      fetchAiPrediction();
+      fetchMongoRecords();
+      setInterval(pollData, 1000);
+      setInterval(fetchAiPrediction, 20000);
+      setInterval(fetchMongoRecords, 3000);
+    });
   </script>
 </body>
 </html>

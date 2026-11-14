@@ -23,31 +23,40 @@ export class UIManager {
   private selDef = document.getElementById('sel-def')!;
   private selWp = document.getElementById('sel-wp')!;
 
-  private stressChart: Chart;
-  private defChart: Chart;
-  private riskChart: Chart;
+  private stressChart: Chart | null = null;
+  private defChart: Chart | null = null;
+  private riskChart: Chart | null = null;
 
   constructor() {
     Chart.defaults.color = '#9ca3af';
     Chart.defaults.scale.grid.color = 'rgba(255,255,255,0.1)';
 
-    this.stressChart = new Chart(document.getElementById('chart-stress') as HTMLCanvasElement, {
-      type: 'line',
-      data: { labels: [], datasets: [{ label: 'Stress (kPa)', data: [], borderColor: '#3b82f6', tension: 0.3 }] },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
+    const elStress = document.getElementById('chart-stress') as HTMLCanvasElement | null;
+    if (elStress) {
+      this.stressChart = new Chart(elStress, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Stress (kPa)', data: [], borderColor: '#3b82f6', tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
 
-    this.defChart = new Chart(document.getElementById('chart-def') as HTMLCanvasElement, {
-      type: 'line',
-      data: { labels: [], datasets: [{ label: 'Deformation (mm)', data: [], borderColor: '#f59e0b', tension: 0.3 }] },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
+    const elDef = document.getElementById('chart-def') as HTMLCanvasElement | null;
+    if (elDef) {
+      this.defChart = new Chart(elDef, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Deformation (mm)', data: [], borderColor: '#f59e0b', tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
 
-    this.riskChart = new Chart(document.getElementById('chart-risk') as HTMLCanvasElement, {
-      type: 'bar',
-      data: { labels: [], datasets: [{ label: 'Risk Score (%)', data: [], backgroundColor: '#ef4444' }] },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
+    const elRisk = document.getElementById('chart-risk') as HTMLCanvasElement | null;
+    if (elRisk) {
+      this.riskChart = new Chart(elRisk, {
+        type: 'bar',
+        data: { labels: [], datasets: [{ label: 'Risk Score (%)', data: [], backgroundColor: '#ef4444' }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
   }
 
   public updateDashboard(analysis: SegmentAnalysis[], maxRiskSegment: SegmentAnalysis) {
@@ -81,26 +90,31 @@ export class UIManager {
     this.surfY.textContent = `${surfaceElevation.toFixed(1)} m (Elevation)`;
     this.surfZ.textContent = `${(surfaceElevation - maxRiskSegment.centerZ).toFixed(1)} m (Total Depth)`;
 
-    // Charts
-    const labels = analysis.map(a => a.id.replace('T-', ''));
-    this.stressChart.data.labels = labels;
-    this.stressChart.data.datasets[0].data = analysis.map(a => a.sensor.stress);
-    this.stressChart.update();
+    // Charts (if active)
+    if (this.stressChart) {
+      const labels = analysis.map(a => a.id.replace('T-', ''));
+      this.stressChart.data.labels = labels;
+      this.stressChart.data.datasets[0].data = analysis.map(a => a.sensor.stress);
+      this.stressChart.update();
 
-    this.defChart.data.labels = labels;
-    this.defChart.data.datasets[0].data = analysis.map(a => a.sensor.deformation);
-    this.defChart.update();
+      if (this.defChart) {
+        this.defChart.data.labels = labels;
+        this.defChart.data.datasets[0].data = analysis.map(a => a.sensor.deformation);
+        this.defChart.update();
+      }
 
-    this.riskChart.data.labels = labels;
-    this.riskChart.data.datasets[0].data = analysis.map(a => a.riskScore);
-    // update colors
-    this.riskChart.data.datasets[0].backgroundColor = analysis.map(a => {
-        if(a.riskScore < 40) return '#10b981';
-        if(a.riskScore < 60) return '#3b82f6';
-        if(a.riskScore < 80) return '#f59e0b';
-        return '#ef4444';
-    });
-    this.riskChart.update();
+      if (this.riskChart) {
+        this.riskChart.data.labels = labels;
+        this.riskChart.data.datasets[0].data = analysis.map(a => a.riskScore);
+        this.riskChart.data.datasets[0].backgroundColor = analysis.map(a => {
+            if(a.riskScore < 40) return '#10b981';
+            if(a.riskScore < 60) return '#3b82f6';
+            if(a.riskScore < 80) return '#f59e0b';
+            return '#ef4444';
+        });
+        this.riskChart.update();
+      }
+    }
   }
 
   public showSelectedSegment(a: SegmentAnalysis | null) {

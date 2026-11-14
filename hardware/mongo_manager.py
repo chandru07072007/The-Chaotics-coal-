@@ -158,7 +158,70 @@ class MongoManager:
             print(f"[MongoDB] Error inserting alert: {e}")
             return False
 
-    def get_latest_stats(self) -> Dict[str, int]:
+    def store_dual_telemetry(self, payload: Dict[str, Any]) -> bool:
+        """Stores consolidated dual-hardware telemetry frame into MongoDB."""
+        if not self.connected or self.db is None:
+            return False
+        try:
+            n1 = payload.get("node1_hx711_impact", {})
+            n2 = payload.get("node2_trekker", {})
+            fused = payload.get("fused_telemetry", {})
+            doc = {
+                "timestamp": datetime.utcnow(),
+                "time_str": payload.get("timestamp", time.strftime("%H:%M:%S")),
+                "node1": {
+                    "raw_load": n1.get("raw_load", 0),
+                    "load_change": n1.get("load_change", 0),
+                    "zero_offset": n1.get("zero_offset", 0),
+                    "adxl_mag": n1.get("adxl_mag", 1.0),
+                    "adxl_peak": n1.get("adxl_peak", 0.0),
+                    "mpu_mag": n1.get("mpu_mag", 1.0),
+                    "mpu_peak": n1.get("mpu_peak", 0.0),
+                    "last_impact": n1.get("last_impact")
+                },
+                "node2": {
+                    "accel": n2.get("accel", [0.0, 0.0, 1.0]),
+                    "gyro": n2.get("gyro", [0.0, 0.0, 0.0]),
+                    "temperature_c": n2.get("temperature_c", 25.0),
+                    "soil_raw": n2.get("soil_raw", 0),
+                    "moisture_pct": n2.get("moisture_pct", 0)
+                },
+                "fused": {
+                    "displacement_mm": fused.get("displacement_mm", 0.0),
+                    "tilt_deg": fused.get("tilt_deg", 0.0),
+                    "vibration_level": fused.get("vibration_level", 0.0),
+                    "temperature_c": fused.get("temperature_c", 25.0),
+                    "moisture_pct": fused.get("moisture_pct", 0.0),
+                    "force_level": fused.get("force_level", 0),
+                    "ttc_hours": fused.get("ttc_hours", 0.0),
+                    "dgms_tier": fused.get("dgms_tier", "SAFE")
+                }
+            }
+            self.db.hardware_telemetry.insert_one(doc)
+            return True
+        except Exception as e:
+            print(f"[MongoDB] Error inserting dual telemetry: {e}")
+            return False
+
+    def get_recent_hardware_records(self, limit: int = 30) -> List[Dict[str, Any]]:
+        """Retrieves recent telemetry records for web display."""
+        if not self.connected or self.db is None:
+            return []
+        try:
+            records = []
+            cursor = self.db.hardware_telemetry.find().sort("timestamp", pymongo.DESCENDING).limit(limit)
+            for doc in cursor:
+                doc["_id"] = str(doc["_id"])
+                if isinstance(doc.get("timestamp"), datetime):
+                    doc["timestamp_iso"] = doc["timestamp"].isoformat()
+                    doc["timestamp"] = doc["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
+                records.append(doc)
+            return records
+        except Exception as e:
+            print(f"[MongoDB] Error reading records: {e}")
+            return []
+
+    def get_latest_stats(self) -> Dict[str, Any]:
         """Returns collection document counts."""
         if not self.connected or self.db is None:
             return {"connected": False}

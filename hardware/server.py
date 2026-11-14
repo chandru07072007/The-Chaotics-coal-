@@ -1,8 +1,10 @@
 import json
+import math
 import os
 import re
 import threading
 import time
+from collections import deque
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -16,6 +18,22 @@ except ImportError:
         from hardware.mongo_manager import mongo_manager
     except ImportError:
         mongo_manager = None
+
+try:
+    from python_digital_twin import python_digital_twin
+except ImportError:
+    try:
+        from hardware.python_digital_twin import python_digital_twin
+    except ImportError:
+        python_digital_twin = None
+
+try:
+    from dual_hardware_manager import dual_hardware_hub
+except ImportError:
+    try:
+        from hardware.dual_hardware_manager import dual_hardware_hub
+    except ImportError:
+        dual_hardware_hub = None
 
 
 class SerialManager:
@@ -249,6 +267,10 @@ class SerialManager:
         if mongo_manager and mongo_manager.connected:
             mongo_manager.store_hardware_telemetry(self.latest_data)
 
+        # Synchronize with Python Digital Twin Mesh
+        if python_digital_twin:
+            python_digital_twin.sync_hardware_packet(45, self.latest_data)
+
         self._broadcast("sensor_data", {
             "data": self.latest_data,
             "packetCount": self.packet_count,
@@ -281,6 +303,33 @@ class SerialManager:
 
 
 manager = SerialManager()
+ai_sample_window = deque(maxlen=20)
+ai_sample_lock = threading.Lock()
+
+
+def record_ai_sample(payload):
+    """Keep one-second dual-node samples for the next 20-second AI average."""
+    fused = payload.get("fused_telemetry", {})
+    node2 = payload.get("node2_trekker", {})
+    sample = {
+        "displacement": float(fused.get("displacement_mm") or 2.5),
+        "tilt": float(fused.get("tilt_deg") or 0.0),
+        "vibration_g": float(fused.get("vibration_level") or 0.1),
+        "temperature": float(node2.get("temperature_c") or 25.0),
+    }
+    with ai_sample_lock:
+        ai_sample_window.append(sample)
+
+
+def average_ai_samples():
+    with ai_sample_lock:
+        samples = list(ai_sample_window)
+    if not samples:
+        return None, 0
+    return {
+        key: sum(sample[key] for sample in samples) / len(samples)
+        for key in samples[0]
+    }, len(samples)
 
 
 class DashboardHandler(SimpleHTTPRequestHandler):
@@ -344,7 +393,29 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
-        if parsed.path == "/api/status":
+        query = parse_qs(parsed.query)
+        if parsed.path == "/api/dual/status":
+            if dual_hardware_hub:
+                payload = dual_hardware_hub.get_unified_payload()
+                record_ai_sample(payload)
+                self._send_json(payload)
+            else:
+                self._send_json({"ok": False, "error": "Dual hardware hub unavailable"})
+            return
+        elif parsed.path == "/api/dual/connect":
+            node_idx = int(query.get("node", ["1"])[0])
+            port_name = query.get("port", [""])[0]
+            baud_val = int(query.get("baud", ["115200"])[0])
+            if dual_hardware_hub:
+                if node_idx == 1:
+                    res = dual_hardware_hub.node1.connect(port_name, baud_val)
+                else:
+                    res = dual_hardware_hub.node2.connect(port_name, baud_val)
+                self._send_json({"ok": res, "connected": res, "node": node_idx, "port": port_name})
+            else:
+                self._send_json({"ok": False, "error": "Dual hardware hub not available"})
+            return
+        elif parsed.path == "/api/status":
             self._send_json(manager.get_status())
             return
         elif parsed.path == "/api/telemetry":
@@ -358,15 +429,32 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             })
             return
         elif parsed.path == "/api/ai_prediction":
-            data = manager.latest_data
-            tilt = round(
-                (data.get("angleX", 0) ** 2 + data.get("angleY", 0) ** 2) ** 0.5,
-                2,
-            )
-            vibration = float(data.get("vibration") or 0)
-            force = float(data.get("forceLevel") or 0)
-            temperature = float(data.get("temperature") or 25.0)
-            displacement = round((force * 0.5) - (temperature - 24.6) * 0.05, 2)
+            if dual_hardware_hub:
+                telemetry = dual_hardware_hub.get_unified_payload()
+                node2 = telemetry.get("node2_trekker", {})
+                fused = telemetry.get("fused_telemetry", {})
+                averaged, sample_count = average_ai_samples()
+                source = averaged or {
+                    "displacement": float(fused.get("displacement_mm") or 2.5),
+                    "tilt": float(fused.get("tilt_deg") or 0.0),
+                    "vibration_g": float(fused.get("vibration_level") or 0.1),
+                    "temperature": float(node2.get("temperature_c") or 25.0),
+                }
+                tilt = round(source["tilt"], 2)
+                vibration_g = source["vibration_g"]
+                vibration = round(vibration_g * 9.81, 2)
+                temperature = round(source["temperature"], 2)
+                displacement = round(source["displacement"], 2)
+            else:
+                data = manager.latest_data
+                tilt = round(
+                    (data.get("angleX", 0) ** 2 + data.get("angleY", 0) ** 2) ** 0.5,
+                    2,
+                )
+                vibration = float(data.get("vibration") or 0.1)
+                force = float(data.get("forceLevel") or 5.0)
+                temperature = float(data.get("temperature") or 25.0)
+                displacement = round((force * 0.5) - (temperature - 24.6) * 0.05, 2)
             velocity = round(vibration * 0.18, 2)
             predicted_24h = round(displacement + velocity * 24.0, 2)
 
@@ -379,11 +467,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             else:
                 risk_tier = "SAFE"
 
-            ttc = (
-                round((50.0 - abs(displacement)) / velocity, 2)
-                if velocity > 0.05
-                else 999.0
-            )
+            if abs(displacement) >= 50.0:
+                ttc = 0.0
+            elif velocity > 0.05:
+                ttc = round((50.0 - abs(displacement)) / velocity, 2)
+            else:
+                ttc = 999.0
             command = (
                 f"python main.py --node-id 45 --disp {displacement:.1f} "
                 f"--tilt {tilt:.1f} --vib {vibration:.2f} "
@@ -401,6 +490,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "dgms_risk_tier": risk_tier,
                 "ttc_hours": ttc,
                 "cli_command": command,
+                "updated_at": time.time(),
+                "refresh_interval_seconds": 20,
+                "averaging_window_seconds": 20,
+                "sample_count": sample_count if dual_hardware_hub else 1,
             }
             if mongo_manager and mongo_manager.connected:
                 mongo_manager.store_aiml_prediction(prediction_payload)
@@ -431,9 +524,115 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 mongo_manager.store_heatmap_nodes(nodes)
             self._send_json({"ok": True, "nodes": nodes})
             return
+        elif parsed.path == "/api/twin/analytics":
+            if python_digital_twin:
+                # Sync with latest data before emitting
+                python_digital_twin.sync_hardware_packet(45, manager.latest_data)
+                analytics = python_digital_twin.get_separated_analytics()
+                self._send_json(analytics)
+            else:
+                self._send_json({"ok": False, "error": "Python Digital Twin engine unavailable"})
+            return
+        elif parsed.path == "/api/twin/node":
+            node_id = int(query.get("id", ["45"])[0])
+            if python_digital_twin and node_id in python_digital_twin.nodes:
+                self._send_json({"ok": True, "node": python_digital_twin.nodes[node_id].to_dict()})
+            else:
+                self._send_json({"ok": False, "error": f"Node #{node_id} not found"})
+            return
+        elif parsed.path == "/api/twin/whatif":
+            try:
+                stress_mult = float(query.get("stress", ["1.0"])[0])
+                water_pct = float(query.get("water", ["50.0"])[0])
+                vib_g = float(query.get("vib", ["0.05"])[0])
+                hours = float(query.get("hours", ["24.0"])[0])
+                center_node = int(query.get("center", ["45"])[0])
+
+                center_r = center_node // 10
+                center_c = center_node % 10
+
+                sim_nodes = []
+                max_disp = 0.0
+                crit_count = 0
+                warn_count = 0
+
+                for r in range(10):
+                    for c in range(10):
+                        nid = r * 10 + c
+                        dist = ((c - center_c) ** 2 + (r - center_r) ** 2) ** 0.5
+                        trough_i = 3.2
+                        influence = math.exp(-(dist ** 2) / (2 * (trough_i ** 2)))
+
+                        # Base ground deformation
+                        base_disp = 12.0 + (32.0 * influence)
+                        
+                        # What-if factor scaling
+                        stress_factor = stress_mult
+                        water_factor = 1.0 + (water_pct / 100.0) * 0.45
+                        vib_factor = 1.0 + (vib_g * 0.35)
+                        time_factor = 1.0 + (hours / 24.0) * 0.28
+
+                        sim_disp = round(base_disp * stress_factor * water_factor * vib_factor * time_factor, 2)
+                        delta = round(sim_disp - base_disp, 2)
+
+                        if sim_disp >= 50.0:
+                            tier = "CRITICAL"
+                            color = "#ef4444"
+                            crit_count += 1
+                        elif sim_disp >= 25.0:
+                            tier = "WARNING"
+                            color = "#f97316"
+                            warn_count += 1
+                        elif sim_disp >= 10.0:
+                            tier = "ADVISORY"
+                            color = "#facc15"
+                        else:
+                            tier = "SAFE"
+                            color = "#10b981"
+
+                        if sim_disp > max_disp:
+                            max_disp = sim_disp
+
+                        sim_nodes.append({
+                            "node_id": nid,
+                            "r": r,
+                            "c": c,
+                            "x": c * 10.0,
+                            "y": r * 10.0,
+                            "base_disp": base_disp,
+                            "sim_disp": sim_disp,
+                            "delta": delta,
+                            "risk_tier": tier,
+                            "color": color
+                        })
+
+                # Simulated TTC
+                ttc = round(max(0.4, 24.0 / (1.0 + max_disp * 0.08 + vib_g * 4.0)), 2)
+                dgms_overall = "CRITICAL" if max_disp >= 50.0 else ("WARNING" if max_disp >= 25.0 else "ADVISORY")
+
+                self._send_json({
+                    "ok": True,
+                    "max_disp_mm": max_disp,
+                    "delta_max_mm": round(max_disp - 44.0, 2),
+                    "affected_area_m2": (crit_count + warn_count) * 100,
+                    "crit_count": crit_count,
+                    "warn_count": warn_count,
+                    "ttc_hours": ttc,
+                    "dgms_tier": dgms_overall,
+                    "nodes": sim_nodes
+                })
+            except Exception as e:
+                self._send_json({"ok": False, "error": str(e)})
+            return
         elif parsed.path == "/api/mongo":
             stats = mongo_manager.get_latest_stats() if mongo_manager else {"connected": False}
             self._send_json({"ok": True, "mongo": stats})
+            return
+        elif parsed.path == "/api/mongo/records":
+            limit_val = int(query.get("limit", ["25"])[0])
+            records = mongo_manager.get_recent_hardware_records(limit=limit_val) if mongo_manager else []
+            stats = mongo_manager.get_latest_stats() if mongo_manager else {"connected": False}
+            self._send_json({"ok": True, "stats": stats, "records": records, "count": len(records)})
             return
         elif parsed.path == "/api/ports":
             self._send_json({"ports": manager.list_ports()})

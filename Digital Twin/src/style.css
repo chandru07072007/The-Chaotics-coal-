@@ -55,32 +55,36 @@ body {
   pointer-events: auto;
 }
 
-/* Right Sidebar: Dashboard */
+/* Right Sidebar: Geotechnical Telemetry & AI Failure Prediction */
 #right-sidebar {
-  top: 20px;
+  top: 16px;
   right: 20px;
   width: 320px;
-  bottom: 250px;
+  max-height: calc(100vh - 32px);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.85rem;
   overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(56, 189, 248, 0.2);
 }
 
 #right-sidebar h2 {
-  font-size: 1.2rem;
+  font-size: 1.05rem;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 1px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 0.5rem;
-  margin-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.3rem;
+  color: #38bdf8;
 }
 
 .stat-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
 }
 
 .stat-label {
@@ -89,6 +93,7 @@ body {
 
 .stat-value {
   font-weight: 600;
+  font-family: monospace;
 }
 
 .status-badge {
@@ -99,25 +104,13 @@ body {
   color: white;
 }
 
-/* Bottom: Charts */
+/* Bottom: Charts (Hidden) */
 #bottom-panel {
-  bottom: 20px;
-  left: 320px;
-  right: 360px;
-  height: 200px;
-  display: flex;
-  gap: 1rem;
+  display: none !important;
 }
 
 .chart-container {
-  flex: 1;
-  height: 100%;
-  position: relative;
-  background: var(--panel-bg);
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  pointer-events: auto;
+  display: none !important;
 }
 
 /* Floating labels */
@@ -136,49 +129,410 @@ body {
   font-family: monospace;
 }
 
-/* lil-gui custom */
+/* lil-gui custom clean layout */
 .lil-gui {
-  --background-color: var(--panel-bg);
-  --text-color: var(--text-main);
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 10;
+  --background-color: #111827;
+  --text-color: #f3f4f6;
+  --title-background-color: #1f2937;
+  --widget-color: #374151;
+  --hover-color: #4b5563;
+  --focus-color: #2563eb;
+  --number-color: #38bdf8;
+  --string-color: #34d399;
+  position: absolute !important;
+  top: 20px !important;
+  left: 20px !important;
+  width: 290px !important;
+  max-width: 290px !important;
+  z-index: 100 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.lil-gui .title {
+  height: 38px !important;
+  line-height: 38px !important;
+  padding: 0 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  font-size: 0.85rem !important;
+  background-color: #1f2937 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+
+.lil-gui .controller {
+  min-height: 32px !important;
+  padding: 4px 10px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.lil-gui .controller .name {
+  font-size: 0.78rem !important;
+  width: 45% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  color: #d1d5db !important;
+}
+
+.lil-gui .controller .widget {
+  width: 55% !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.lil-gui .controller input[type="text"],
+.lil-gui .controller input[type="number"] {
+  background: #374151 !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  font-size: 0.8rem !important;
+}
+
+.lil-gui .controller.boolean {
+  justify-content: space-between !important;
+}
+
+.lil-gui {
+  display: none !important;
 }
 
 #header {
-  top: 20px;
-  left: 320px;
-  pointer-events: none;
-}
-#header h1 {
-  font-size: 1.5rem;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-}
-#header p {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  display: none !important;
 }
 
 .camera-controls {
   position: absolute;
-  top: 80px;
-  left: 320px;
+  top: 16px;
+  left: 20px;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   pointer-events: auto;
+  z-index: 20;
 }
 
 .camera-controls button {
-  background: var(--panel-bg);
-  color: var(--text-main);
-  border: 1px solid rgba(255,255,255,0.2);
-  padding: 5px 10px;
-  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 8px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  transition: all 0.2s;
 }
+
 .camera-controls button:hover {
-  background: rgba(255,255,255,0.1);
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #38bdf8;
 }
+
+/* DGMS Heatmap Legend */
+#heatmap-legend {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 290px;
+  pointer-events: auto;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.legend-title {
+  font-size: 0.8rem;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  color: #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.legend-bar {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #10b981 0%, #06b6d4 25%, #facc15 50%, #f97316 75%, #ef4444 100%);
+  margin-bottom: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.legend-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Portal Topographic Spectrum & Floating Holographic Cards (media_1794596835063_0650c3c7.jpg)
+   ========================================================================== */
+
+.portal-overlay-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 15;
+  overflow: hidden;
+}
+
+.portal-svg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 12;
+}
+
+.portal-holo-card {
+  position: absolute;
+  min-width: 195px;
+  background: rgba(8, 24, 48, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(56, 189, 248, 0.65);
+  border-radius: 7px;
+  padding: 8px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65), 0 0 15px rgba(6, 182, 212, 0.3);
+  pointer-events: auto;
+  user-select: none;
+  transition: transform 0.08s ease-out;
+  transform: translate(-50%, -100%);
+  display: block;
+}
+
+.portal-holo-card:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 25px rgba(56, 189, 248, 0.5);
+}
+
+.holo-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+  padding-bottom: 5px;
+  margin-bottom: 6px;
+}
+
+.holo-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.holo-badge.code {
+  background: rgba(6, 182, 212, 0.25);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  letter-spacing: 0.5px;
+}
+
+.holo-badge.mat {
+  background: rgba(30, 58, 138, 0.5);
+  color: #93c5fd;
+}
+
+.holo-status {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.status-safe {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.status-advisory {
+  background: rgba(250, 204, 21, 0.2);
+  color: #fde047;
+  border: 1px solid rgba(250, 204, 21, 0.4);
+}
+
+.status-warning {
+  background: rgba(249, 115, 22, 0.25);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.5);
+}
+
+.status-critical {
+  background: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  animation: pulseCritical 1.4s infinite;
+}
+
+@keyframes pulseCritical {
+  0%, 100% { box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
+  50% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
+}
+
+.holo-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.holo-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+}
+
+.holo-lbl {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.holo-val {
+  color: #f8fafc;
+  font-weight: 700;
+  font-family: 'Consolas', 'Courier New', monospace;
+}
+
+.holo-val.disp {
+  color: #38bdf8;
+  text-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
+}
+
+/* Right-Edge Vertical Elevation / Subsidence Colorbar (Exact match to reference photo) */
+.portal-colorbar-panel {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 76px;
+  background: rgba(11, 20, 38, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 8px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(6, 182, 212, 0.2);
+  pointer-events: auto;
+  z-index: 20;
+}
+
+.colorbar-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.mongo-live-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #34d399;
+  letter-spacing: 0.5px;
+}
+
+.live-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulseLive 1.5s infinite;
+}
+
+@keyframes pulseLive {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.colorbar-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #cbd5e1;
+  letter-spacing: 0.8px;
+}
+
+.colorbar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  height: 270px;
+  width: 100%;
+  justify-content: center;
+}
+
+.colorbar-gradient {
+  width: 18px;
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(to top, 
+    #ef4444 0%, 
+    #f97316 20%, 
+    #facc15 35%, 
+    #22c55e 50%, 
+    #06b6d4 68%, 
+    #2563eb 82%, 
+    #d946ef 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+.colorbar-scale {
+  position: absolute;
+  left: 36px;
+  top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.scale-mark {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: 'Consolas', 'Courier New', monospace;
+  color: #f1f5f9;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  line-height: 1;
+}
+
+.mark-19 { color: #f472b6; }
+.mark-15 { color: #60a5fa; }
+.mark-10 { color: #4ade80; }
+.mark-5 { color: #facc15; }
+.mark-0 { color: #f87171; }
+
+.colorbar-footer {
+  margin-top: 8px;
+  font-size: 0.6rem;
+  color: #94a3b8;
+  font-family: monospace;
+  text-align: center;
+}
+
