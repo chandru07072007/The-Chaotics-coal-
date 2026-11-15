@@ -46,6 +46,13 @@ export class RegionalView {
       // Default to Cesium ION token or offline mode
       CesiumObj.Ion.defaultAccessToken = '';
 
+      // High-resolution public daylight base layer (OpenStreetMap / CartoDB)
+      const baseImagery = new CesiumObj.UrlTemplateImageryProvider({
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        maximumLevel: 19,
+        credit: 'OpenStreetMap'
+      });
+
       this.viewer = new CesiumObj.Viewer(this.container, {
         animation: false,
         baseLayerPicker: false,
@@ -58,17 +65,43 @@ export class RegionalView {
         timeline: false,
         navigationHelpButton: false,
         navigationInstructionsInitiallyVisible: false,
-        terrainProvider: new CesiumObj.EllipsoidTerrainProvider(),
+        baseLayer: new CesiumObj.ImageryLayer(baseImagery),
+        skyBox: false,
       });
 
-      // Fly to Jharia / Dhanbad Coalfields region
+      // Ensure imagery layer is attached
+      try {
+        if (this.viewer.imageryLayers && this.viewer.imageryLayers.length === 0) {
+          this.viewer.imageryLayers.addImageryProvider(baseImagery);
+        }
+      } catch (e) {}
+
+      // Bright Daylight Environment (Disable space / night terminator)
+      this.viewer.scene.globe.baseColor = CesiumObj.Color.fromCssColorString('#f1f5f9');
+      this.viewer.scene.globe.enableLighting = false;
+      this.viewer.scene.backgroundColor = CesiumObj.Color.fromCssColorString('#e0f2fe');
+
+      if (this.viewer.scene.skyAtmosphere) {
+        this.viewer.scene.skyAtmosphere.show = true;
+      }
+      if (this.viewer.scene.skyBox) {
+        this.viewer.scene.skyBox.show = false;
+      }
+      if (this.viewer.scene.sun) {
+        this.viewer.scene.sun.show = false;
+      }
+      if (this.viewer.scene.moon) {
+        this.viewer.scene.moon.show = false;
+      }
+
+      // Fly to Jharia / Dhanbad Coalfields region with clear daylight vantage
       const centerLon = 84.1314;
       const centerLat = 23.6102;
       this.viewer.camera.flyTo({
-        destination: CesiumObj.Cartesian3.fromDegrees(centerLon, centerLat, 3500),
+        destination: CesiumObj.Cartesian3.fromDegrees(centerLon, centerLat, 7500),
         orientation: {
           heading: CesiumObj.Math.toRadians(0.0),
-          pitch: CesiumObj.Math.toRadians(-45.0),
+          pitch: CesiumObj.Math.toRadians(-55.0),
           roll: 0.0,
         },
         duration: 2.0,
@@ -141,21 +174,21 @@ export class RegionalView {
 
       // Add pin/marker for each physical/simulated sensor node
       const marker = this.viewer.entities.add({
-        position: Cesium.Cartesian3.fromDegrees(node.lon, node.lat, 25),
+        position: Cesium.Cartesian3.fromDegrees(node.lon, node.lat, 120),
         point: {
-          pixelSize: 10,
+          pixelSize: 12,
           color: Cesium.Color.fromCssColorString(this.getTierColor(node.risk_tier || 'SAFE')),
           outlineColor: Cesium.Color.WHITE,
           outlineWidth: 2,
         },
         label: {
           text: `Node #${node.node_id}\n${node.displacement_mm?.toFixed(1) || '0.0'} mm`,
-          font: '11px sans-serif',
+          font: 'bold 12px sans-serif',
           fillColor: Cesium.Color.WHITE,
           showBackground: true,
-          backgroundColor: new Cesium.Color(0.06, 0.09, 0.16, 0.8),
+          backgroundColor: new Cesium.Color(0.06, 0.09, 0.16, 0.85),
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-          pixelOffset: new Cesium.Cartesian2(0, -12),
+          pixelOffset: new Cesium.Cartesian2(0, -14),
         },
       });
       this.nodeEntities.push(marker);
@@ -186,11 +219,12 @@ export class RegionalView {
           name: `H3 Hex Cell: ${cellIndex}`,
           polygon: {
             hierarchy: Cesium.Cartesian3.fromDegreesArray(degreesArray),
-            material: Cesium.Color.fromCssColorString(colorStr).withAlpha(0.45),
+            material: Cesium.Color.fromCssColorString(colorStr).withAlpha(0.55),
             outline: true,
             outlineColor: Cesium.Color.fromCssColorString(colorStr),
-            outlineWidth: 2,
-            height: 5,
+            outlineWidth: 3,
+            height: 10,
+            extrudedHeight: 60,
           },
           description: `
             <div style="padding: 8px; font-family: sans-serif; color: #fff;">
