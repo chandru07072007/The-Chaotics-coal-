@@ -6,6 +6,7 @@ export default function PredictionView() {
   const [selectedNodeId, setSelectedNodeId] = useState(45);
   const [twinData, setTwinData] = useState(null);
   const [selectedNodeDetails, setSelectedNodeDetails] = useState(null);
+  const [backendOnline, setBackendOnline] = useState(true);
 
   // What-If Simulation State
   const [stressMult, setStressMult] = useState(1.4);
@@ -25,9 +26,12 @@ export default function PredictionView() {
       .then(data => {
         if (data && data.ok) {
           setTwinData(data);
+          setBackendOnline(true);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setBackendOnline(false);
+      });
   };
 
   // Fetch individual node twin state
@@ -38,9 +42,12 @@ export default function PredictionView() {
       .then(data => {
         if (data && data.ok) {
           setSelectedNodeDetails(data.node);
+          setBackendOnline(true);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setBackendOnline(false);
+      });
   };
 
   // Compute or Fetch What-If Simulation
@@ -50,11 +57,13 @@ export default function PredictionView() {
       .then(data => {
         if (data && data.ok) {
           setWhatIfData(data);
+          setBackendOnline(true);
         } else {
           fallbackClientWhatIf();
         }
       })
       .catch(() => {
+        setBackendOnline(false);
         fallbackClientWhatIf();
       });
   };
@@ -346,6 +355,11 @@ export default function PredictionView() {
 
       {/* Main Content Area */}
       <div className="pred-content">
+        {!backendOnline && (
+          <div className="sim-banner">
+            Simulation & Emulation Mode Active &bull; Running high-speed client-side geological computation engine
+          </div>
+        )}
         
         {/* ========================================================
             SECTION: WHAT-IF SIMULATION IN HEATMAP & 3D GRAPH

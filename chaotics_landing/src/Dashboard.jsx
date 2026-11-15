@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PredictionView from './PredictionView.jsx';
 
 export default function Dashboard({ user, onLogout }) {
-  const [activeNav, setActiveNav] = useState('Dashbored');
+  const [activeNav, setActiveNav] = useState('Dashboard');
   const [availablePorts, setAvailablePorts] = useState([]);
+  const hasAutoAssigned = useRef(false);
 
   // Port 1: HX711 + ADXL345 + MPU6500 Impact Load Node
   const [port1, setPort1] = useState('No Port Selected');
@@ -29,8 +30,13 @@ export default function Dashboard({ user, onLogout }) {
         if (d.ports && d.ports.length > 0) {
           const portList = d.ports.map(p => (typeof p === 'object' && p !== null ? p.device || p.description : String(p)));
           setAvailablePorts(portList);
-          if (port1 === 'No Port Selected' && portList.length > 0) setPort1(portList[0]);
-          if (port2 === 'No Port Selected' && portList.length > 1) setPort2(portList[1]);
+          if (!hasAutoAssigned.current && portList.length > 0) {
+            hasAutoAssigned.current = true;
+            setPort1(prev => (prev === 'No Port Selected' ? portList[0] : prev));
+            if (portList.length > 1) {
+              setPort2(prev => (prev === 'No Port Selected' ? portList[1] : prev));
+            }
+          }
         }
       })
       .catch(() => {});
@@ -41,14 +47,14 @@ export default function Dashboard({ user, onLogout }) {
       .then(d => {
         if (d && d.ok) {
           setDualData(d);
-          if (d.node1_hx711_impact?.connected) setConn1(true);
-          if (d.node2_trekker?.connected) setConn2(true);
+          if (d.node1_hx711_impact?.connected !== undefined) setConn1(d.node1_hx711_impact.connected);
+          if (d.node2_trekker?.connected !== undefined) setConn2(d.node2_trekker.connected);
           
           if (d.fused_telemetry) {
-            setMoisture(d.fused_telemetry.moisture_pct);
-            setForce(d.fused_telemetry.force_level);
-            setDisp(d.fused_telemetry.displacement_mm);
-            if (d.fused_telemetry.ttc_hours) setTtc(d.fused_telemetry.ttc_hours);
+            if (d.fused_telemetry.moisture_pct !== undefined) setMoisture(d.fused_telemetry.moisture_pct);
+            if (d.fused_telemetry.force_level !== undefined) setForce(d.fused_telemetry.force_level);
+            if (d.fused_telemetry.displacement_mm !== undefined) setDisp(d.fused_telemetry.displacement_mm);
+            if (d.fused_telemetry.ttc_hours !== undefined) setTtc(d.fused_telemetry.ttc_hours);
             if (d.fused_telemetry.dgms_tier) setDgmsTier(d.fused_telemetry.dgms_tier);
           }
         }
@@ -76,8 +82,8 @@ export default function Dashboard({ user, onLogout }) {
     fetch(`http://localhost:8080/api/dual/connect?node=${nodeIndex}&port=${encodeURIComponent(selectedPort)}&baud=115200`)
       .then(r => r.json())
       .then(d => {
-        if (nodeIndex === 1) setConn1(d.connected);
-        if (nodeIndex === 2) setConn2(d.connected);
+        if (nodeIndex === 1) setConn1(Boolean(d.connected));
+        if (nodeIndex === 2) setConn2(Boolean(d.connected));
       })
       .catch(() => {
         if (nodeIndex === 1) setConn1(!conn1);
@@ -97,10 +103,10 @@ export default function Dashboard({ user, onLogout }) {
 
         <nav className="mk-nav">
           <button
-            className={`mk-nav-item ${activeNav === 'Dashbored' ? 'active' : ''}`}
-            onClick={() => setActiveNav('Dashbored')}
+            className={`mk-nav-item ${activeNav === 'Dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveNav('Dashboard')}
           >
-            Dashbored
+            Dashboard
           </button>
           <button
             className={`mk-nav-item ${activeNav === '3d Twin' ? 'active' : ''}`}
@@ -121,7 +127,7 @@ export default function Dashboard({ user, onLogout }) {
       </header>
 
       {/* Main Tab Content */}
-      <main className="mk-content" style={{ display: activeNav === 'Dashbored' ? 'flex' : 'none' }}>
+      <main className="mk-content" style={{ display: activeNav === 'Dashboard' ? 'flex' : 'none' }}>
         
         {/* DUAL HARDWARE PORTS CONNECTION BAR */}
         <div className="dual-port-bar-container">
@@ -186,25 +192,25 @@ export default function Dashboard({ user, onLogout }) {
 
         {/* 3 Main Colored Rectangles */}
         <div className="mk-cards-grid">
-          {/* Box 1: Reddish / Coral / Moisture Sensor (From Node 2 Soil Moisture + Dallas) */}
+          {/* Box 1: Reddish / Coral / Moisture Sensor */}
           <div className="mk-sensor-box box-moisture">
             <span className="box-title">Moisture Sensor</span>
             <div className="box-value">{moisture} <span className="box-unit">%</span></div>
-            <div className="box-sub">Soil Raw: {n2.soil_raw || 1780} &bull; Dallas Temp: {n2.temperature_c || 24.62}°C</div>
+            <div className="box-sub">Soil Raw: {n2.soil_raw ?? 1780} &bull; Dallas Temp: {n2.temperature_c ?? 24.62}°C</div>
           </div>
 
-          {/* Box 2: Warm Yellow / Force-Sensing (From Node 1 HX711 Load Cell) */}
+          {/* Box 2: Warm Yellow / Force-Sensing */}
           <div className="mk-sensor-box box-force">
             <span className="box-title">Force-Sensing</span>
             <div className="box-value">{force} <span className="box-unit">%</span></div>
-            <div className="box-sub">HX711 Δ: {n1.load_change >= 0 ? '+' : ''}{n1.load_change || '+1420'} &bull; Raw: {n1.raw_load || 8345420}</div>
+            <div className="box-sub">HX711 Δ: {n1.load_change !== undefined ? (n1.load_change >= 0 ? `+${n1.load_change}` : n1.load_change) : '+1420'} &bull; Raw: {n1.raw_load ?? 8345420}</div>
           </div>
 
-          {/* Box 3: Light Grey / TTC (From Combined Impact / Convergence) */}
+          {/* Box 3: Light Grey / TTC */}
           <div className="mk-sensor-box box-ttc">
             <span className="box-title">TTC</span>
             <div className="box-value">{ttc} <span className="box-unit">hrs</span></div>
-            <div className="box-sub">ADXL Peak: {n1.adxl_peak || 0.045}g &bull; DGMS: {dgmsTier}</div>
+            <div className="box-sub">ADXL Peak: {n1.adxl_peak ?? 0.045}g &bull; DGMS: {dgmsTier}</div>
           </div>
         </div>
 
@@ -221,21 +227,21 @@ export default function Dashboard({ user, onLogout }) {
             <div className="sensor-readout-rows">
               <div className="readout-row">
                 <span>HX711 Zero Offset / Raw:</span>
-                <strong>{n1.zero_offset || 8344000} / {n1.raw_load || 8345420}</strong>
+                <strong>{n1.zero_offset ?? 8344000} / {n1.raw_load ?? 8345420}</strong>
               </div>
               <div className="readout-row">
                 <span>Load Cell Change (Δ):</span>
                 <strong style={{ color: '#ef4444' }}>
-                  {n1.load_change >= 0 ? '+' : ''}{n1.load_change || '+1420'}
+                  {n1.load_change !== undefined ? (n1.load_change >= 0 ? `+${n1.load_change}` : n1.load_change) : '+1420'}
                 </strong>
               </div>
               <div className="readout-row">
                 <span>ADXL345 SPI (Resultant / Peak):</span>
-                <strong>{n1.adxl_mag || 1.002} g (Peak: {n1.adxl_peak || 0.045} g)</strong>
+                <strong>{n1.adxl_mag ?? 1.002} g (Peak: {n1.adxl_peak ?? 0.045} g)</strong>
               </div>
               <div className="readout-row">
                 <span>MPU6500 I2C (Resultant / Peak):</span>
-                <strong>{n1.mpu_mag || 0.998} g (Peak: {n1.mpu_peak || 0.038} g)</strong>
+                <strong>{n1.mpu_mag ?? 0.998} g (Peak: {n1.mpu_peak ?? 0.038} g)</strong>
               </div>
               <div className="readout-row">
                 <span>Micro-Seismic Shock Trigger:</span>
@@ -277,12 +283,12 @@ export default function Dashboard({ user, onLogout }) {
               </div>
               <div className="readout-row">
                 <span>Dallas DS18B20 Strata Temp:</span>
-                <strong style={{ color: '#0284c7' }}>{n2.temperature_c || 24.62} °C</strong>
+                <strong style={{ color: '#0284c7' }}>{n2.temperature_c ?? 24.62} °C</strong>
               </div>
               <div className="readout-row">
                 <span>Capacitive Soil Moisture Probe:</span>
                 <strong style={{ color: '#059669' }}>
-                  {n2.moisture_pct || 56.5}% (Raw: {n2.soil_raw || 1780})
+                  {n2.moisture_pct ?? 56.5}% (Raw: {n2.soil_raw ?? 1780})
                 </strong>
               </div>
               <div className="readout-row">

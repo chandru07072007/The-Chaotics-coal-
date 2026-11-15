@@ -90,6 +90,24 @@ class MongoManager:
             print(f"[MongoDB] Error inserting hardware telemetry: {e}")
             return False
 
+    def store_dual_telemetry(self, payload: Dict[str, Any]) -> bool:
+        """Stores unified dual-node telemetry snapshot (Node 1 HX711/Impact + Node 2 Trekker + Fused)."""
+        if not self.connected or self.db is None:
+            return False
+        try:
+            doc = {
+                "timestamp": datetime.utcnow(),
+                "node1": payload.get("node1_hx711_impact", {}),
+                "node2": payload.get("node2_trekker", {}),
+                "fused": payload.get("fused_telemetry", {}),
+                "source": "dual_hardware_hub"
+            }
+            self.db.hardware_telemetry.insert_one(doc)
+            return True
+        except Exception as e:
+            print(f"[MongoDB] Error inserting dual telemetry: {e}")
+            return False
+
     def store_aiml_prediction(self, prediction: Dict[str, Any]) -> bool:
         """Stores AI/ML subsidence forecast, DGMS risk tier and TTC."""
         if not self.connected or self.db is None:

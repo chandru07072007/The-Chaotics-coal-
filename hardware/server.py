@@ -386,6 +386,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(content)
 
     def end_headers(self):
+        self.send_header("X-Frame-Options", "ALLOWALL")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "*")
         self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
         self.send_header("Pragma", "no-cache")
         self.send_header("Expires", "0")
@@ -727,6 +731,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
 
         self._send_json({"ok": False, "message": "Not found"}, 404)
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.end_headers()
 
 
 if __name__ == "__main__":
