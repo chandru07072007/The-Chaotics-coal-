@@ -19,6 +19,37 @@ export default function PredictionView() {
   const [rotAngle, setRotAngle] = useState(35); // 3D rotation angle
   const canvasRef = useRef(null);
 
+  // Routing & Microclimate State
+  const [workerStart, setWorkerStart] = useState({ r: 4, c: 5 });
+  const [routingData, setRoutingData] = useState(null);
+  const [microclimateData, setMicroclimateData] = useState(null);
+
+  const fetchRouting = (sr = workerStart.r, sc = workerStart.c) => {
+    const center_r = Math.floor(epicenterNode / 10);
+    const center_c = epicenterNode % 10;
+    fetch(`http://localhost:8080/api/routing/evacuation?start_r=${sr}&start_c=${sc}&center_r=${center_r}&center_c=${center_c}&stress=${stressMult}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.ok) {
+          setRoutingData(data);
+          setBackendOnline(true);
+        }
+      })
+      .catch(() => setBackendOnline(false));
+  };
+
+  const fetchMicroclimate = () => {
+    fetch('http://localhost:8080/api/microclimate')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.ok) {
+          setMicroclimateData(data.summary);
+          setBackendOnline(true);
+        }
+      })
+      .catch(() => setBackendOnline(false));
+  };
+
   // Poll Python Digital Twin Analytics Endpoint
   const fetchAnalytics = () => {
     fetch('http://localhost:8080/api/twin/analytics')
@@ -156,6 +187,13 @@ export default function PredictionView() {
   useEffect(() => {
     computeWhatIf();
   }, [stressMult, waterPct, vibG, hours, epicenterNode]);
+
+  useEffect(() => {
+    if (activeSubTab === 'routing') {
+      fetchRouting(workerStart.r, workerStart.c);
+      fetchMicroclimate();
+    }
+  }, [activeSubTab, workerStart, stressMult, epicenterNode]);
 
   // Render 3D Surface Mesh Graph on Canvas
   useEffect(() => {
@@ -350,6 +388,12 @@ export default function PredictionView() {
           onClick={() => setActiveSubTab('node_twin')}
         >
           3D STRUCTURAL DIGITAL TWIN (PER-NODE)
+        </button>
+        <button
+          className={`pred-nav-btn ${activeSubTab === 'routing' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('routing')}
+        >
+          SAFETY EVACUATION & HAZARD ROUTING
         </button>
       </div>
 
@@ -817,6 +861,174 @@ export default function PredictionView() {
                 <code>
                   python main.py --node-id {selectedNodeDetails?.node_id ?? selectedNodeId} --disp {selectedNodeDetails?.displacement_mm ?? 42.5} --tilt {selectedNodeDetails?.tilt_deg ?? 4.2} --vib {selectedNodeDetails?.vibration_rms ?? 9.85} --temp 25.0 --vel {selectedNodeDetails?.velocity_mm_h ?? 0.85}
                 </code>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Section 5: Safety Evacuation & Hazard Routing Simulation */}
+        {activeSubTab === 'routing' && (
+          <div className="routing-view-container">
+            <div className="sim-panel-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>
+                  UNDERGROUND WORKER EVACUATION & MULTI-OBJECTIVE HAZARD ROUTING
+                </h3>
+                <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                  Discrete-event Dijkstra path optimizer computing least-risk egress corridor across active strata stress fields
+                </span>
+              </div>
+              <button
+                className="btn-recompute"
+                style={{ padding: '8px 16px', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                onClick={() => {
+                  fetchRouting(workerStart.r, workerStart.c);
+                  fetchMicroclimate();
+                }}
+              >
+                RECALCULATE SAFEST ROUTE
+              </button>
+            </div>
+
+            {/* Microclimate Environmental Strip */}
+            <div className="microclimate-strip">
+              <div className="strip-item">
+                <span className="strip-lbl">MINE AMBIENT TEMPERATURE</span>
+                <span className="strip-val">{microclimateData?.mean_temp_c ?? 24.5} °C</span>
+              </div>
+              <div className="strip-item">
+                <span className="strip-lbl">OVERBURDEN SOIL SATURATION</span>
+                <span className="strip-val">{microclimateData?.mean_moisture_pct ?? 55.0} %</span>
+              </div>
+              <div className="strip-item">
+                <span className="strip-lbl">THERMAL STRESS INTENSITY</span>
+                <span className="strip-val">{microclimateData?.heat_island_intensity ?? 18.0} / 100</span>
+              </div>
+              <div className="strip-item">
+                <span className="strip-lbl">ACTIVE CREW LOCATION</span>
+                <span className="strip-val">Node #{workerStart.r * 10 + workerStart.c} (Grid [{workerStart.r}, {workerStart.c}])</span>
+              </div>
+            </div>
+
+            {/* Top KPI Cards */}
+            <div className="routing-metrics-grid">
+              <div className="metric-box">
+                <span className="metric-lbl">DESIGNATED SAFE EXIT</span>
+                <span className="metric-val" style={{ color: '#10b981' }}>
+                  {routingData?.evacuation?.exit?.name ?? 'Portal A (North-West Adit)'}
+                </span>
+                <span className="metric-sub">Safest egress gateway</span>
+              </div>
+              <div className="metric-box">
+                <span className="metric-lbl">EVACUATION DISTANCE</span>
+                <span className="metric-val">{routingData?.evacuation?.distance_meters ?? 90.0} m</span>
+                <span className="metric-sub">{routingData?.evacuation?.steps ?? 9} gallery steps</span>
+              </div>
+              <div className="metric-box">
+                <span className="metric-lbl">ESTIMATED EVACUATION TIME</span>
+                <span className="metric-val" style={{ color: '#0ea5e9' }}>
+                  {routingData?.evacuation?.estimated_evac_time_min ?? 1.3} min
+                </span>
+                <span className="metric-sub">At 1.2 m/s transit velocity</span>
+              </div>
+              <div className="metric-box">
+                <span className="metric-lbl">CUMULATIVE HAZARD EXPOSURE</span>
+                <span className="metric-val" style={{ color: '#f59e0b' }}>
+                  {routingData?.evacuation?.total_risk_score ?? 12.4}
+                </span>
+                <span className="metric-sub">Integrated strata risk exposure</span>
+              </div>
+            </div>
+
+            {/* Routing Interactive Grid Area */}
+            <div className="routing-grid-card">
+              <div className="panel-title-bar" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span style={{ fontWeight: 600 }}>10×10 MINE GALLERY HAZARD FIELD & EVACUATION PATH (CLICK CELL TO MOVE CREW)</span>
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  Portals at Corners (0,0), (0,9), (9,0), (9,9) &bull; Green/Blue Path = Least-Hazard Corridor
+                </span>
+              </div>
+
+              <div className="evac-grid-wrap">
+                <div className="evac-10x10-grid">
+                  {Array.from({ length: 10 }).map((_, r) => (
+                    <div key={`row-${r}`} className="evac-grid-row">
+                      {Array.from({ length: 10 }).map((_, c) => {
+                        const nid = r * 10 + c;
+                        const isExit = (r === 0 && c === 0) || (r === 0 && c === 9) || (r === 9 && c === 0) || (r === 9 && c === 9);
+                        const isStart = workerStart.r === r && workerStart.c === c;
+                        const pathIndex = routingData?.evacuation?.path?.findIndex(p => p.r === r && p.c === c);
+                        const isPath = pathIndex !== undefined && pathIndex >= 0;
+                        const cellRisk = routingData?.risk_grid?.[r]?.[c] ?? 0.2;
+
+                        let bg = '#ffffff';
+                        let border = '#e2e8f0';
+                        if (isExit) {
+                          bg = '#dcfce7';
+                          border = '#16a34a';
+                        } else if (cellRisk >= 10.0) {
+                          bg = '#fee2e2';
+                          border = '#ef4444';
+                        } else if (cellRisk >= 4.0) {
+                          bg = '#ffedd5';
+                          border = '#f97316';
+                        } else if (cellRisk >= 1.5) {
+                          bg = '#fef9c3';
+                          border = '#facc15';
+                        }
+
+                        if (isPath && !isExit && !isStart) {
+                          bg = '#dbeafe';
+                          border = '#3b82f6';
+                        }
+
+                        return (
+                          <div
+                            key={`cell-${nid}`}
+                            className={`evac-cell ${isStart ? 'is-start' : ''} ${isPath ? 'is-path' : ''} ${isExit ? 'is-exit' : ''}`}
+                            style={{ backgroundColor: bg, borderColor: border }}
+                            onClick={() => {
+                              setWorkerStart({ r, c });
+                              fetchRouting(r, c);
+                            }}
+                            title={`Cell [${r}, ${c}] (#${nid}) | Risk: ${cellRisk} | Click to set crew`}
+                          >
+                            {isStart && <span className="badge-crew">CREW</span>}
+                            {isExit && <span className="badge-exit">EXIT</span>}
+                            {isPath && !isStart && !isExit && (
+                              <span className="badge-step">#{pathIndex}</span>
+                            )}
+                            <span className="cell-sub-id">#{nid}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="evac-legend-card">
+                  <h4 style={{ margin: '0 0 10px 0', fontSize: '0.95rem' }}>EVACUATION ROUTING METRICS</h4>
+                  <div className="legend-row">
+                    <span className="legend-box" style={{ background: '#dcfce7', border: '1px solid #16a34a' }}></span>
+                    <span>Designated Mine Exit Portal</span>
+                  </div>
+                  <div className="legend-row">
+                    <span className="legend-box" style={{ background: '#f59e0b', border: '1px solid #d97706' }}></span>
+                    <span>Current Worker / Crew Position</span>
+                  </div>
+                  <div className="legend-row">
+                    <span className="legend-box" style={{ background: '#dbeafe', border: '1px solid #3b82f6' }}></span>
+                    <span>Safest Egress Corridor Sequence</span>
+                  </div>
+                  <div className="legend-row">
+                    <span className="legend-box" style={{ background: '#fee2e2', border: '1px solid #ef4444' }}></span>
+                    <span>High Strata Hazard Zone (&gt;10.0)</span>
+                  </div>
+                  <hr style={{ margin: '12px 0', borderColor: '#e2e8f0' }} />
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
+                    Tip: Click any cell on the grid to instantly reposition the underground crew. The discrete-event Dijkstra engine recalculates the least-risk path in real-time.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
