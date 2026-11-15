@@ -436,6 +436,14 @@ class DualHardwareHub:
             except Exception as e:
                 print("[MongoDB Auto-Persist Error]:", e)
 
+        # Parallel write to TimescaleDB
+        try:
+            from timescale_manager import timescale_manager
+            if timescale_manager and timescale_manager.connected:
+                timescale_manager.store(payload)
+        except Exception:
+            pass
+
         return payload
 
 

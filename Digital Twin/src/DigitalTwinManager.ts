@@ -1,4 +1,3 @@
-import GUI from 'lil-gui';
 import type { TunnelConfig, GeologicalLayer, SensorData, SegmentAnalysis } from './DataModel';
 import { Calculations } from './Calculations';
 import { ThreeScene } from './ThreeScene';
@@ -6,6 +5,7 @@ import { TunnelView } from './TunnelView';
 import { GeologyView } from './GeologyView';
 import { SensorView } from './SensorView';
 import { UIManager } from './UIManager';
+import { RegionalView } from './RegionalView';
 import * as THREE from 'three';
 
 export class DigitalTwinManager {
@@ -19,6 +19,7 @@ export class DigitalTwinManager {
   private geologyView: GeologyView;
   private sensorView: SensorView;
   private uiManager: UIManager;
+  private regionalView: RegionalView;
 
   private params = {
     waterTableZ: -12,
@@ -69,6 +70,7 @@ export class DigitalTwinManager {
     this.tunnelView = new TunnelView(this.tunnelConfig);
     this.geologyView = new GeologyView();
     this.sensorView = new SensorView(this.tunnelConfig);
+    this.regionalView = new RegionalView('cesium-container');
 
     this.sceneWrapper.scene.add(this.tunnelView.group);
     this.sceneWrapper.scene.add(this.geologyView.group);
@@ -83,7 +85,6 @@ export class DigitalTwinManager {
     this.sceneWrapper.camera.position.set(-20, 205, 175);
     this.sceneWrapper.controls.target.set(0, 0, 0);
 
-    this.setupGUI();
     this.initSensors();
     this.build3D();
     this.geologyView.setRainbowSpectrumMode(true);
@@ -148,37 +149,6 @@ export class DigitalTwinManager {
         })
         .catch(() => {});
     }, 2000);
-  }
-
-  private setupGUI() {
-    const gui = new GUI({ title: 'Digital Twin Controls', width: 290 });
-    gui.hide(); // Hidden for clean 3D viewport
-
-    const fLive = gui.addFolder('Live IoT Integration');
-    fLive.add(this.params, 'liveTelemetrySync').name('Live ESP32 / SSE Sync');
-    fLive.close();
-    
-    const fTunnel = gui.addFolder('Tunnel Parameters');
-    fTunnel.add(this.tunnelConfig, 'depthZ', -40, 0, 1).name('Tunnel Depth').onChange(() => this.rebuildAll());
-    fTunnel.add(this.params, 'tunnelOpacity', 0.1, 1).name('Exterior Opacity').onChange((v: number) => this.tunnelView.setExteriorOpacity(v));
-    fTunnel.close();
-    
-    const fGeo = gui.addFolder('Geology Parameters');
-    fGeo.add(this.params, 'showGeology').name('Show Geology').onChange((v: boolean) => this.geologyView.setVisibility(v));
-    fGeo.add(this.params, 'surfaceHeatmap').name('Upper Layer Heatmap').onChange((v: boolean) => this.geologyView.setHeatmapActive(v));
-    fGeo.add(this.params, 'layerOpacity', 0.1, 1).name('Layer Opacity').onChange((v: number) => this.geologyView.setOpacity(v));
-
-    const fEnv = gui.addFolder('Environmental');
-    fEnv.add(this.params, 'waterTableZ', -50, 0, 1).name('Groundwater Lvl').onChange(() => this.updateAnalysis());
-    fEnv.close();
-
-    const fSim = gui.addFolder('Simulation');
-    fSim.add(this.params, 'simulationActive').name('Run Simulation');
-    fSim.add(this, 'resetSimulation').name('Reset Values');
-    fSim.add({ addStress: () => { this.params.stressMult += 0.1; this.updateAnalysis(); } }, 'addStress').name('Stress +10%');
-    fSim.add({ addWater: () => { this.params.waterMult += 0.1; this.updateAnalysis(); } }, 'addWater').name('Water +10%');
-    fSim.add({ addDef: () => { this.params.defMult += 0.1; this.updateAnalysis(); } }, 'addDef').name('Deformation +10%');
-    fSim.close();
   }
 
   private setupCameraControls() {
@@ -263,6 +233,17 @@ export class DigitalTwinManager {
       const legend = document.getElementById('heatmap-legend');
       if (legend) {
         legend.style.display = this.params.surfaceHeatmap ? 'block' : 'none';
+      }
+    });
+
+    const btnRegional = document.getElementById('btn-regional-toggle');
+    btnRegional?.addEventListener('click', () => {
+      this.regionalView.toggle();
+      const isVis = this.regionalView.getVisible();
+      if (btnRegional) {
+        btnRegional.innerText = isVis ? 'CLOSE REGIONAL MAP' : 'REGIONAL GIS MAP';
+        btnRegional.style.color = isVis ? '#10b981' : '#38bdf8';
+        btnRegional.style.borderColor = isVis ? '#10b981' : '#38bdf8';
       }
     });
   }

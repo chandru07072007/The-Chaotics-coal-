@@ -5,10 +5,13 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>3D Tunnel Digital Twin</title>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
   </head>
   <body>
     <div id="app">
       <div id="canvas-container"></div>
+      <div id="cesium-container" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:5;"></div>
       
       <!-- Top header title removed as requested for clean 3D simulation -->
 
@@ -21,6 +24,7 @@
         <button id="cam-side">SECTION</button>
         <button id="cam-failure" style="color: var(--critical); border-color: var(--critical);">LOCATE FAILURE</button>
         <button id="btn-toggle-heatmap" style="color: #06b6d4; border-color: #06b6d4;">HEATMAP: ON</button>
+        <button id="btn-regional-toggle" style="color: #38bdf8; border-color: #38bdf8;">REGIONAL GIS MAP</button>
       </div>
 
       <!-- Holographic Leader Lines SVG Overlay for Portal Sectors -->

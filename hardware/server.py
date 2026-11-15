@@ -35,6 +35,46 @@ except ImportError:
     except ImportError:
         dual_hardware_hub = None
 
+try:
+    from mqtt_bridge import mqtt_bridge
+except ImportError:
+    try:
+        from hardware.mqtt_bridge import mqtt_bridge
+    except ImportError:
+        mqtt_bridge = None
+
+try:
+    from timescale_manager import timescale_manager
+except ImportError:
+    try:
+        from hardware.timescale_manager import timescale_manager
+    except ImportError:
+        timescale_manager = None
+
+try:
+    from microclimate_model import microclimate_model
+except ImportError:
+    try:
+        from hardware.microclimate_model import microclimate_model
+    except ImportError:
+        microclimate_model = None
+
+try:
+    from safety_routing import dijkstra_safety
+except ImportError:
+    try:
+        from hardware.safety_routing import dijkstra_safety
+    except ImportError:
+        dijkstra_safety = None
+
+try:
+    import sensorthings_api
+except ImportError:
+    try:
+        from hardware import sensorthings_api
+    except ImportError:
+        sensorthings_api = None
+
 
 class SerialManager:
     def __init__(self):
@@ -528,6 +568,177 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 mongo_manager.store_heatmap_nodes(nodes)
             self._send_json({"ok": True, "nodes": nodes})
             return
+        elif parsed.path == "/api/spatial/nodes":
+            nodes = []
+            fused = {}
+            node1 = {}
+            node2 = {}
+            if dual_hardware_hub:
+                payload = dual_hardware_hub.get_unified_payload()
+                fused = payload.get("fused_telemetry", {})
+                node1 = payload.get("node1_crusher", {})
+                node2 = payload.get("node2_trekker", {})
+            else:
+                fused = {"displacement_mm": 2.5, "tilt_deg": 0.4, "vibration_level": 0.08, "dgms_tier": "SAFE"}
+
+            base_lat = 23.6102
+            base_lon = 84.1314
+            curr_disp = float(fused.get("displacement_mm", 2.5))
+            curr_tier = str(fused.get("dgms_tier", "SAFE"))
+            curr_tilt = float(fused.get("tilt_deg", 0.4))
+            curr_vib = float(fused.get("vibration_level", 0.08))
+
+            nodes.append({
+                "node_id": 1,
+                "name": "Node 1 - Extraction Portal",
+                "lat": base_lat,
+                "lon": base_lon,
+                "displacement_mm": curr_disp,
+                "risk_tier": curr_tier,
+                "tilt_deg": curr_tilt,
+                "vibration_level": curr_vib,
+                "temperature_c": float(node2.get("temperature_c", 26.2))
+            })
+            nodes.append({
+                "node_id": 2,
+                "name": "Node 2 - Subsurface Gallery",
+                "lat": round(base_lat + 0.0035, 6),
+                "lon": round(base_lon + 0.0042, 6),
+                "displacement_mm": round(curr_disp * 0.85 + 1.2, 2),
+                "risk_tier": "WARNING" if curr_disp > 20 else curr_tier,
+                "tilt_deg": round(curr_tilt * 1.1, 2),
+                "vibration_level": round(curr_vib * 0.9, 3),
+                "temperature_c": float(node2.get("temperature_c", 27.5))
+            })
+            offsets = [
+                (3, "North Adit Surface", 0.0062, -0.0028, 0.4, "SAFE"),
+                (4, "East Ventilation Shaft", 0.0021, 0.0078, 1.2, "ADVISORY" if curr_disp > 15 else "SAFE"),
+                (5, "West Haulage Ramp", -0.0051, -0.0044, 0.6, "SAFE"),
+                (6, "South Overburden Dump", -0.0072, 0.0031, 1.8, "WARNING" if curr_disp > 25 else "ADVISORY"),
+                (7, "Tailings Dam Perimeter", -0.0038, 0.0089, 0.9, "SAFE"),
+                (8, "Settlement Observation Pillar", 0.0055, 0.0049, 1.5, "ADVISORY")
+            ]
+            for nid, name, dlat, dlon, scale, tier in offsets:
+                nodes.append({
+                    "node_id": nid,
+                    "name": name,
+                    "lat": round(base_lat + dlat, 6),
+                    "lon": round(base_lon + dlon, 6),
+                    "displacement_mm": round(curr_disp * scale + 0.8, 2),
+                    "risk_tier": tier,
+                    "tilt_deg": round(curr_tilt * scale, 2),
+                    "vibration_level": round(curr_vib * scale, 3),
+                    "temperature_c": round(25.0 + scale * 1.5, 1)
+                })
+            self._send_json({"ok": True, "count": len(nodes), "nodes": nodes})
+            return
+        elif parsed.path == "/api/dem":
+            lat = float(query.get("lat", ["23.6102"])[0])
+            lon = float(query.get("lon", ["84.1314"])[0])
+            width, height = 32, 32
+            elevations = []
+            for r in range(height):
+                for c in range(width):
+                    d = ((r - 16)**2 + (c - 16)**2)**0.5
+                    elev = round(220.0 + math.sin(r * 0.3) * 15.0 + math.cos(c * 0.3) * 15.0 - d * 1.5, 2)
+                    elevations.append(elev)
+            self._send_json({
+                "ok": True,
+                "center_lat": lat,
+                "center_lon": lon,
+                "width": width,
+                "height": height,
+                "min_elev": min(elevations),
+                "max_elev": max(elevations),
+                "elevations": elevations,
+                "bounds": {
+                    "north": lat + 0.05,
+                    "south": lat - 0.05,
+                    "east": lon + 0.05,
+                    "west": lon - 0.05
+                }
+            })
+            return
+        elif parsed.path == "/api/mqtt/status":
+            stat = mqtt_bridge.get_status() if mqtt_bridge else {"connected": False, "installed": False}
+            self._send_json({"ok": True, "mqtt": stat})
+            return
+        elif parsed.path == "/api/timescale/status":
+            stat = timescale_manager.get_status() if timescale_manager else {"connected": False}
+            self._send_json({"ok": True, "timescale": stat})
+            return
+        elif parsed.path == "/api/microclimate":
+            temp = 25.0
+            moist = 55.0
+            if dual_hardware_hub:
+                p = dual_hardware_hub.get_unified_payload()
+                n2 = p.get("node2_trekker", {})
+                temp = float(n2.get("temperature_c", 25.0))
+                moist = float(n2.get("moisture_pct", 55.0))
+            if microclimate_model:
+                microclimate_model.update(temperature=temp, moisture_pct=moist)
+                summ = microclimate_model.get_summary()
+                self._send_json({"ok": True, "summary": summ})
+            else:
+                self._send_json({"ok": False, "error": "Microclimate model unavailable"})
+            return
+        elif parsed.path == "/api/routing/evacuation":
+            try:
+                start_r = int(query.get("start_r", ["4"])[0])
+                start_c = int(query.get("start_c", ["5"])[0])
+                center_r = int(query.get("center_r", ["4"])[0])
+                center_c = int(query.get("center_c", ["5"])[0])
+                stress_mult = float(query.get("stress", ["1.0"])[0])
+
+                risk_grid = [[0.2] * 10 for _ in range(10)]
+                for r in range(10):
+                    for c in range(10):
+                        dist = ((c - center_c)**2 + (r - center_r)**2)**0.5
+                        hazard = math.exp(-(dist**2) / (2 * (3.0**2))) * (15.0 * stress_mult)
+                        risk_grid[r][c] = round(hazard, 2)
+
+                if dijkstra_safety:
+                    evac_result = dijkstra_safety(risk_grid, start=(start_r, start_c))
+                    self._send_json({
+                        "ok": True,
+                        "evacuation": evac_result,
+                        "risk_grid": risk_grid
+                    })
+                else:
+                    self._send_json({"ok": False, "error": "Routing engine unavailable"})
+            except Exception as e:
+                self._send_json({"ok": False, "error": str(e)})
+            return
+        elif parsed.path.startswith("/api/v1.1/Things"):
+            if sensorthings_api:
+                self._send_json(sensorthings_api.get_things_response())
+            else:
+                self._send_json({"ok": False, "error": "OGC SensorThings module not loaded"})
+            return
+        elif parsed.path.startswith("/api/v1.1/Sensors"):
+            if sensorthings_api:
+                self._send_json(sensorthings_api.get_sensors_response())
+            else:
+                self._send_json({"ok": False, "error": "OGC SensorThings module not loaded"})
+            return
+        elif parsed.path.startswith("/api/v1.1/Locations"):
+            if sensorthings_api:
+                self._send_json(sensorthings_api.get_locations_response())
+            else:
+                self._send_json({"ok": False, "error": "OGC SensorThings module not loaded"})
+            return
+        elif parsed.path.startswith("/api/v1.1/Observations"):
+            if sensorthings_api:
+                self._send_json(sensorthings_api.get_observations_response(dual_hardware_hub))
+            else:
+                self._send_json({"ok": False, "error": "OGC SensorThings module not loaded"})
+            return
+        elif parsed.path.startswith("/api/v1.1/Datastreams"):
+            if sensorthings_api:
+                self._send_json(sensorthings_api.get_datastreams_response())
+            else:
+                self._send_json({"ok": False, "error": "OGC SensorThings module not loaded"})
+            return
         elif parsed.path == "/api/twin/analytics":
             if python_digital_twin:
                 # Sync with latest data before emitting
@@ -745,4 +956,6 @@ if __name__ == "__main__":
     print(f"ESP32 Real-Time Sensor Dashboard running at http://localhost:{port_num}")
     if manager.connected:
         print(f"Auto-connected to {manager.port} ({manager.port_description}) @ {manager.baudrate} baud")
+    if mqtt_bridge:
+        mqtt_bridge.start()
     server.serve_forever()
